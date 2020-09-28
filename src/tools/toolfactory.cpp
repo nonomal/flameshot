@@ -33,6 +33,7 @@
 #include "redo/redotool.h"
 #include "save/savetool.h"
 #include "selection/selectiontool.h"
+#include "sizeincrease/sizeincreasetool.h"
 #include "sizeindicator/sizeindicatortool.h"
 #include "text/texttool.h"
 #include "undo/undotool.h"
@@ -106,7 +107,9 @@ CaptureTool* ToolFactory::CreateTool(CaptureToolButton::ButtonType t,
         case CaptureToolButton::TYPE_CIRCLECOUNT:
             tool = new CircleCountTool(parent);
             break;
-
+        case CaptureToolButton::TYPE_SIZEINCREASE:
+            tool = new SizeincreaseTool(parent);
+            break;
         default:
             tool = nullptr;
             break;

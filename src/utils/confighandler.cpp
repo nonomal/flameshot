@@ -58,7 +58,8 @@ QVector<CaptureToolButton::ButtonType> ConfigHandler::getButtons()
                 << CaptureToolButton::TYPE_IMAGEUPLOADER
                 << CaptureToolButton::TYPE_OPEN_APP
                 << CaptureToolButton::TYPE_PIN << CaptureToolButton::TYPE_TEXT
-                << CaptureToolButton::TYPE_CIRCLECOUNT;
+                << CaptureToolButton::TYPE_CIRCLECOUNT
+                << CaptureToolButton::TYPE_SIZEINCREASE;
     }
 
     using bt = CaptureToolButton::ButtonType;

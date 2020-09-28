@@ -44,7 +44,8 @@ enum class ToolType
     SELECTION,
     SIZEINDICATOR,
     TEXT,
-    UNDO
+    UNDO,
+    SIZEINCREASE
 };
 
 class CaptureTool : public QObject

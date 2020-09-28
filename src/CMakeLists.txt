@@ -102,6 +102,7 @@ target_include_directories(
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tools/sizeindicator>
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tools/text>
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tools/undo>
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/tools/sizeincrease>
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/widgets>
          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/widgets/panel>
