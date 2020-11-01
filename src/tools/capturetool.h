@@ -46,7 +46,8 @@ enum class ToolType
     TEXT,
     UNDO,
     UPLOAD,
-    SIZEINCREASE
+    SIZEINCREASE,
+    SIZEDECREASE
 };
 
 class CaptureTool : public QObject
@@ -94,6 +95,10 @@ public:
         REQ_INCREMENT_CIRCLE_COUNT,
 
         REQ_DECREMENT_CIRCLE_COUNT,
+        // increase tool size for all tools
+        REQ_INCREASE_TOOL_SIZE,
+        // decrease tool size for all tools
+        REQ_DECREASE_TOOL_SIZE
     };
 
     explicit CaptureTool(QObject* parent = nullptr)

@@ -34,6 +34,7 @@
 #include "save/savetool.h"
 #include "selection/selectiontool.h"
 #include "sizeincrease/sizeincreasetool.h"
+#include "sizedecrease/sizedecreasetool.h"
 #include "sizeindicator/sizeindicatortool.h"
 #include "src/utils/confighandler.h"
 #include "text/texttool.h"
@@ -110,6 +111,9 @@ CaptureTool* ToolFactory::CreateTool(CaptureToolButton::ButtonType t,
             break;
         case CaptureToolButton::TYPE_SIZEINCREASE:
             tool = new SizeincreaseTool(parent);
+            break;
+        case CaptureToolButton::TYPE_SIZEDECREASE:
+            tool = new SizedecreaseTool(parent);
             break;
         default:
             tool = nullptr;

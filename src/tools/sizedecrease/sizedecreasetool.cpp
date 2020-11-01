@@ -15,45 +15,45 @@
 //     You should have received a copy of the GNU General Public License
 //     along with Flameshot.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "sizeincreasetool.h"
+#include "sizedecreasetool.h"
 #include <QPainter>
 
-SizeincreaseTool::SizeincreaseTool(QObject* parent)
+SizedecreaseTool::SizedecreaseTool(QObject* parent)
   : AbstractActionTool(parent)
 {}
 
-bool SizeincreaseTool::closeOnButtonPressed() const
+bool SizedecreaseTool::closeOnButtonPressed() const
 {
     return false;
 }
 
-QIcon SizeincreaseTool::icon(const QColor& background, bool inEditor) const
+QIcon SizedecreaseTool::icon(const QColor& background, bool inEditor) const
 {
     Q_UNUSED(inEditor);
-    return QIcon(iconPath(background) + "plus.svg");
+    return QIcon(iconPath(background) + "minus.svg");
 }
-QString SizeincreaseTool::name() const
+QString SizedecreaseTool::name() const
 {
     return tr("Increase Tool Size");
 }
 
-ToolType SizeincreaseTool::nameID() const
+ToolType SizedecreaseTool::nameID() const
 {
-    return ToolType::SIZEINCREASE;
+    return ToolType::SIZEDECREASE;
 }
 
-QString SizeincreaseTool::description() const
+QString SizedecreaseTool::description() const
 {
-    return tr("Increase the size of the other tools");
+    return tr("Decrease the size of the other tools");
 }
 
-CaptureTool* SizeincreaseTool::copy(QObject* parent)
+CaptureTool* SizedecreaseTool::copy(QObject* parent)
 {
-    return new SizeincreaseTool(parent);
+    return new SizedecreaseTool(parent);
 }
 
-void SizeincreaseTool::pressed(const CaptureContext& context)
+void SizedecreaseTool::pressed(const CaptureContext& context)
 {
     Q_UNUSED(context);
-    emit requestAction(REQ_INCREASE_TOOL_SIZE);
+    emit requestAction(REQ_DECREASE_TOOL_SIZE);
 }
