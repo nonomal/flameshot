@@ -853,9 +853,9 @@ void CaptureWidget::handleButtonSignal(CaptureTool::Request r)
             }
             break;
         case CaptureTool::REQ_INCREASE_TOOL_SIZE:
-            
+
             // increase thickness
-            m_context.thickness = qBound(0, m_context.thickness+1, 100);
+            m_context.thickness = qBound(0, m_context.thickness + 1, 100);
 
             // show notifier circle
             m_notifierBox->showMessage(QString::number(m_context.thickness));
@@ -863,9 +863,9 @@ void CaptureWidget::handleButtonSignal(CaptureTool::Request r)
             emit thicknessChanged(m_context.thickness);
             break;
         case CaptureTool::REQ_DECREASE_TOOL_SIZE:
-            
+
             // decrease thickness
-            m_context.thickness = qBound(0, m_context.thickness-1, 100);
+            m_context.thickness = qBound(0, m_context.thickness - 1, 100);
 
             // show notifier circle
             m_notifierBox->showMessage(QString::number(m_context.thickness));
