@@ -19,6 +19,7 @@
 
 #include "src/widgets/capture/capturetoolbutton.h"
 #include <QSettings>
+#include <QStringList>
 #include <QVector>
 
 class ConfigHandler
@@ -32,8 +33,11 @@ public:
     QVector<QColor> getUserColors();
     void setUserColors(const QVector<QColor>&);
 
-    QString savePathValue();
+    QString savePath();
     void setSavePath(const QString&);
+
+    bool savePathFixed();
+    void setSavePathFixed(bool);
 
     QColor uiMainColorValue();
     void setUIMainColor(const QColor&);
@@ -72,24 +76,29 @@ public:
     int contrastOpacityValue();
     void setContrastOpacity(const int);
 
-    bool closeAfterScreenshotValue();
-    void setCloseAfterScreenshot(const bool);
-
-    bool copyAndCloseAfterUploadEnabled();
-    void setCopyAndCloseAfterUploadEnabled(const bool);
     bool saveAfterCopyValue();
     void setSaveAfterCopy(const bool);
 
     QString saveAfterCopyPathValue();
     void setSaveAfterCopyPath(const QString&);
 
+    bool copyPathAfterSaveEnabled();
+    void setCopyPathAfterSaveEnabled(const bool);
+
     void setDefaults();
     void setAllTheButtons();
+
+    QVector<QStringList> shortcuts();
+    void setShortcutsDefault();
+    bool setShortcut(const QString&, const QString&);
+    const QString& shortcut(const QString&);
 
     QString configFilePath() const;
 
 private:
+    QString m_strRes;
     QSettings m_settings;
+    QVector<QStringList> m_shortcuts;
 
     bool normalizeButtons(QVector<int>&);
 

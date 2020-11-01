@@ -18,16 +18,19 @@
 #include "controller.h"
 #include "src/config/configwindow.h"
 #include "src/utils/confighandler.h"
+#include "src/utils/history.h"
 #include "src/utils/screengrabber.h"
 #include "src/utils/systemnotification.h"
 #include "src/widgets/capture/capturetoolbutton.h"
 #include "src/widgets/capture/capturewidget.h"
 #include "src/widgets/capturelauncher.h"
+#include "src/widgets/historywidget.h"
 #include "src/widgets/infowindow.h"
+#include "src/widgets/notificationwidget.h"
 #include <QAction>
 #include <QApplication>
+#include <QClipboard>
 #include <QDesktopWidget>
-#include <QFile>
 #include <QMenu>
 #include <QSystemTrayIcon>
 
@@ -41,7 +44,12 @@
 Controller::Controller()
   : m_captureWindow(nullptr)
 {
+    m_history = nullptr;
+
     qApp->setQuitOnLastWindowClosed(false);
+
+    // set default shortcusts if not set yet
+    ConfigHandler().setShortcutsDefault();
 
     // init tray icon
 #if defined(Q_OS_LINUX) || defined(Q_OS_UNIX)
@@ -60,6 +68,11 @@ Controller::Controller()
 
     QString StyleSheet = CaptureButton::globalStyleSheet();
     qApp->setStyleSheet(StyleSheet);
+}
+
+Controller::~Controller()
+{
+    delete m_history;
 }
 
 Controller* Controller::getInstance()
@@ -157,7 +170,8 @@ void Controller::startScreenGrab(const uint id, const int screenNumber)
     }
     QPixmap p(ScreenGrabber().grabScreen(n, ok));
     if (ok) {
-        emit captureTaken(id, p);
+        QRect selection; // `flameshot screen` does not support --selection
+        emit captureTaken(id, p, selection);
     } else {
         emit captureFailed(id);
     }
@@ -193,6 +207,8 @@ void Controller::enableTrayIcon()
     if (m_trayIcon) {
         return;
     }
+    QMenu* trayIconMenu = new QMenu();
+
     ConfigHandler().setDisabledTrayIcon(false);
     QAction* captureAction = new QAction(tr("&Take Screenshot"), this);
     connect(captureAction, &QAction::triggered, this, [this]() {
@@ -212,9 +228,16 @@ void Controller::enableTrayIcon()
     QAction* quitAction = new QAction(tr("&Quit"), this);
     connect(quitAction, &QAction::triggered, qApp, &QCoreApplication::quit);
 
-    QMenu* trayIconMenu = new QMenu();
+    // recent screenshots
+    QAction* recentAction = new QAction(tr("&Latest Uploads"), this);
+    connect(
+      recentAction, SIGNAL(triggered()), this, SLOT(showRecentScreenshots()));
+
+    // generate menu
     trayIconMenu->addAction(captureAction);
     trayIconMenu->addAction(launcherAction);
+    trayIconMenu->addSeparator();
+    trayIconMenu->addAction(recentAction);
     trayIconMenu->addSeparator();
     trayIconMenu->addAction(configAction);
     trayIconMenu->addAction(infoAction);
@@ -234,6 +257,13 @@ void Controller::enableTrayIcon()
         }
     };
     connect(m_trayIcon, &QSystemTrayIcon::activated, this, trayIconActivated);
+
+#ifdef Q_OS_WIN
+    // Ensure proper removal of tray icon when program quits on Windows.
+    connect(
+      qApp, &QCoreApplication::aboutToQuit, m_trayIcon, &QSystemTrayIcon::hide);
+#endif
+
     m_trayIcon->show();
 }
 
@@ -253,7 +283,7 @@ void Controller::sendTrayNotification(const QString& text,
 {
     if (m_trayIcon) {
         m_trayIcon->showMessage(
-          title, text, QSystemTrayIcon::Information, timeout);
+          title, text, QIcon(":img/app/flameshot.svg"), timeout);
     }
 }
 
@@ -264,36 +294,48 @@ void Controller::updateConfigComponents()
     }
 }
 
+void Controller::updateRecentScreenshots()
+{
+    if (nullptr != m_history) {
+        if (m_history->isVisible()) {
+            m_history->loadHistory();
+        }
+    }
+}
+
+void Controller::showRecentScreenshots()
+{
+    if (nullptr == m_history) {
+        m_history = new HistoryWidget();
+    }
+    m_history->loadHistory();
+    m_history->show();
+}
+
 void Controller::startFullscreenCapture(const uint id)
 {
     bool ok = true;
     QPixmap p(ScreenGrabber().grabEntireDesktop(ok));
     if (ok) {
-        emit captureTaken(id, p);
+        QRect selection; // `flameshot full` does not support --selection
+        emit captureTaken(id, p, selection);
     } else {
         emit captureFailed(id);
     }
 }
 
-void Controller::handleCaptureTaken(uint id, QPixmap p)
+void Controller::handleCaptureTaken(uint id, QPixmap p, QRect selection)
 {
     auto it = m_requestMap.find(id);
     if (it != m_requestMap.end()) {
         it.value().exportCapture(p);
         m_requestMap.erase(it);
     }
-    if (ConfigHandler().closeAfterScreenshotValue()) {
-        QApplication::quit();
-    }
 }
 
 void Controller::handleCaptureFailed(uint id)
 {
     m_requestMap.remove(id);
-
-    if (ConfigHandler().closeAfterScreenshotValue()) {
-        QApplication::quit();
-    }
 }
 
 void Controller::doLater(int msec, QObject* receiver, lambda func)

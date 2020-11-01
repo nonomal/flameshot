@@ -84,13 +84,17 @@ void PixelateTool::process(QPainter& painter,
 
         scene.render(&painter, selection, QRectF());
         blur->setBlurRadius(12);
+        // multiple repeat for make blur effect stronger
         scene.render(&painter, selection, QRectF());
+
     } else {
         int width = selection.width() * (0.5 / qMax(1, m_thickness));
+        int height = selection.height() * (0.5 / qMax(1, m_thickness));
+        QSize size = QSize(qMax(width, 1), qMax(height, 1));
 
         QPixmap t = pixmap.copy(selection);
-        t = t.scaledToWidth(qMax(width, 10), Qt::SmoothTransformation);
-        t = t.scaledToWidth(selection.width());
+        t = t.scaled(size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        t = t.scaled(selection.width(), selection.height());
         painter.drawImage(selection, t.toImage());
     }
 }

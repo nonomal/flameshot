@@ -38,9 +38,18 @@
 #include <QDBusMessage>
 #endif
 
+int waitAfterConnecting(int delay, QCoreApplication& app)
+{
+    QTimer t;
+    t.setInterval(delay + 1000 * 60 * 15); // 15 minutes timeout
+    QObject::connect(&t, &QTimer::timeout, qApp, &QCoreApplication::quit);
+    t.start();
+    // wait
+    return app.exec();
+}
+
 int main(int argc, char* argv[])
 {
-    QApplication::setStyle(new StyleOverride);
     // required for the button serialization
     // TODO: change to QVector in v1.0
     qRegisterMetaTypeStreamOperators<QList<int>>("QList<int>");
@@ -49,6 +58,7 @@ int main(int argc, char* argv[])
     // no arguments, just launch Flameshot
     if (argc == 1) {
         SingleApplication app(argc, argv);
+        QApplication::setStyle(new StyleOverride);
 
         QTranslator translator, qtTranslator;
         QStringList trPaths = PathInfo::translationsPaths();
@@ -151,6 +161,10 @@ int main(int argc, char* argv[])
       QStringLiteral("color-code"));
     CommandOption rawImageOption({ "r", "raw" },
                                  QObject::tr("Print raw PNG capture"));
+    CommandOption selectionOption(
+      { "g", "print-geometry" },
+      QObject::tr("Print geometry of the selection in the format W H X Y. Does "
+                  "nothing if raw is specified"));
     CommandOption screenNumberOption(
       { "n", "number" },
       QObject::tr("Define the screen to capture") + ",\n" +
@@ -216,7 +230,9 @@ int main(int argc, char* argv[])
     parser.AddArgument(configArgument);
     auto helpOption = parser.addHelpOption();
     auto versionOption = parser.addVersionOption();
-    parser.AddOptions({ pathOption, delayOption, rawImageOption }, guiArgument);
+    parser.AddOptions(
+      { pathOption, delayOption, rawImageOption, selectionOption },
+      guiArgument);
     parser.AddOptions({ screenNumberOption,
                         clipboardOption,
                         pathOption,
@@ -257,6 +273,7 @@ int main(int argc, char* argv[])
         QString pathValue = parser.value(pathOption);
         int delay = parser.value(delayOption).toInt();
         bool isRaw = parser.isSet(rawImageOption);
+        bool isSelection = parser.isSet(selectionOption);
         DBusUtils dbusUtils;
         CaptureRequest req(CaptureRequest::GRAPHICAL_MODE, delay, pathValue);
         uint id = req.id();
@@ -274,13 +291,10 @@ int main(int argc, char* argv[])
 
         if (isRaw) {
             dbusUtils.connectPrintCapture(sessionBus, id);
-            QTimer t;
-            t.setInterval(delay + 1000 * 60 * 15); // 15 minutes timeout
-            QObject::connect(
-              &t, &QTimer::timeout, qApp, &QCoreApplication::quit);
-            t.start();
-            // wait
-            return app.exec();
+            return waitAfterConnecting(delay, app);
+        } else if (isSelection) {
+            dbusUtils.connectSelectionCapture(sessionBus, id);
+            return waitAfterConnecting(delay, app);
         }
     } else if (parser.isSet(fullArgument)) { // FULL
         QString pathValue = parser.value(pathOption);

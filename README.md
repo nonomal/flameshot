@@ -2,7 +2,7 @@
   <p>
     <h1>
       <a href="https://github.com/flameshot-org/flameshot">
-        <img src="data/img/app/flameshot.svg" alt="Flameshot" />
+        <img src="data/img/app/org.flameshot.Flameshot.svg" alt="Flameshot" />
       </a>
       <br />
       Flameshot
@@ -28,6 +28,13 @@
     <a href="https://flameshot.org">
       <img src="https://img.shields.io/github/release/flameshot-org/flameshot.svg?style=flat-square&label=docs" alt="Docs" />
     </a>
+    <br>
+    <a href="https://snapcraft.io/flameshot">
+      <img alt="Get it from the Snap Store" src="https://snapcraft.io/static/images/badges/en/snap-store-black.svg" />
+    </a>
+    <a href="https://flathub.org/apps/details/org.flameshot.Flameshot">
+      <img height="60" alt="Download on Flathub" src="https://flathub.org/assets/badges/flathub-badge-en.svg"/>
+    </a>
   </p>
 </div>
 
@@ -46,6 +53,7 @@
   - [Local](#local)
   - [Global](#global)
     - [On KDE Plasma desktop](#on-kde-plasma-desktop)
+    - [On Ubuntu](#on-ubuntu-tested-on-1804)
 - [Considerations](#considerations)
 - [Installation](#installation)
   - [Prebuilt Packages](#prebuilt-packages)
@@ -60,10 +68,10 @@
     - [Arch](#arch)
   - [Build](#build)
   - [Install](#install)
-- [Packaging](#packaging)
 - [License](#license)
+- [Privacy Policy](#privacy-policy)
+- [Code Signing Policy](#code-signing-policy)
 - [Contribute](#contribute)
-- [Donations](#donations)
 - [Acknowledgment](#acknowledgment)
 
 ## Features
@@ -161,15 +169,31 @@ These shortcuts are available in GUI mode:
 
 |  Keys                                                                     |  Description                                                   |
 |---                                                                        |---                                                             |
+| <kbd>P</kbd>                                          | Set the Pencil as paint tool |
+| <kbd>D</kbd>                                          | Set the Line as paint tool |
+| <kbd>A</kbd>                                          | Set the Arrow as paint tool |
+| <kbd>S</kbd>                                          | Set Selection as paint tool |
+| <kbd>R</kbd>                                          | Set the Rectangle as paint tool |
+| <kbd>C</kbd>                                          | Set the Circle as paint tool |
+| <kbd>M</kbd>                                          | Set the Marker as paint tool |
+| <kbd>T</kbd>                                          | Add text to your capture |
+| <kbd>B</kbd>                                          | Set Pixalate as the paint tool |
 | <kbd>←</kbd>, <kbd>↓</kbd>, <kbd>↑</kbd>, <kbd>→</kbd>                    | Move selection 1px                                             |
 | <kbd>Shift</kbd> + <kbd>←</kbd>, <kbd>↓</kbd>, <kbd>↑</kbd>, <kbd>→</kbd> | Resize selection 1px                                           |
 | <kbd>Esc</kbd>                                                            | Quit capture                                                   |
+| <kbd>Ctrl</kbd> + <kbd>M</kbd>                                            | Move the selection area                                              |
 | <kbd>Ctrl</kbd> + <kbd>C</kbd>                                            | Copy to clipboard                                              |
 | <kbd>Ctrl</kbd> + <kbd>S</kbd>                                            | Save selection as a file                                       |
 | <kbd>Ctrl</kbd> + <kbd>Z</kbd>                                            | Undo the last modification                                     |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd>                                            | Redo the next modification                    |
+| <kbd>Ctrl</kbd> + <kbd>Q</kbd>                                            | Leave the capture screen                                         |
+| <kbd>Ctrl</kbd> + <kbd>O</kbd>                                            | Choose an app to open the capture                                |
+| <kbd>Return</kbd>                                             | Upload the selection to Imgur                                      |
 | <kbd>Spacebar</kbd>                                                       | Toggle visibility of sidebar with options of the selected tool, color picker for the drawing color and history menu |
 | Right Click                                                               | Show the color wheel                                              |
 | Mouse Wheel                                                               | Change the tool's thickness                                    |
+| <kbd>Print screen</kbd>                                          | Capture Screen |
+| <kbd>Shift</kbd> + <kbd>Print</kbd>                                            | Screenshot History                                     |
 
 <kbd>Shift</kbd> + drag a handler of the selection area: mirror redimension in the opposite handler.
 
@@ -210,6 +234,24 @@ Steps for using the configuration:
 5. Click _Edit_ → _Import..._, navigate to the Desktop folder (or wherever you saved the configuration file) and open the configuration file.
 6. Now the Flameshot entry should appear in the list. Click _Apply_ to apply the changes.
 7. If you want to change the defaults, you can expand the entry, select the appropriate action and modify it as you wish; the process is pretty mush self-explanatory.
+
+#### On Ubuntu (Tested on 18.04)
+
+Taken from [adaptation](https://askubuntu.com/posts/1039949/revisions) of [Pavel Answer on askubuntu](https://askubuntu.com/revisions/1036473/1). To use flameshot instead of default screenshot application in ubuntu we need to release the binding on <kbd>Prt Sc</kbd> key, and then create a new binding for `/usr/bin/flameshot gui`.
+
+1. Release the binding on <kbd>Prt Sc</kbd> using the following command.
+
+  ```shell
+  gsettings set org.gnome.settings-daemon.plugins.media-keys screenshot ''
+  ```
+
+2. Go to Settings > Device > Keyboard and press the '+' button at the bottom.
+
+3. Name the command as you like it, e.g. `flameshot`. And in the command insert `/usr/bin/flameshot gui`.
+
+4. Then click "_Set Shortcut.._" and press <kbd>Prt Sc</kbd>. This will show as "_print_".
+
+Now everytime You press <kbd>Prt Sc</kbd> it will start the flameshot gui instead of the default application
 
 ## Considerations
 
@@ -252,11 +294,10 @@ some Linux distributions:
 - [Ubuntu 18.04+](https://launchpad.net/ubuntu/+source/flameshot): `apt install flameshot`
 - [openSUSE](https://software.opensuse.org/package/flameshot)
 - [Void Linux](https://github.com/void-linux/void-packages/tree/master/srcpkgs/flameshot) (`xbps-install flameshot`)
-- [Docker](https://github.com/ManuelLR/docker-flameshot)
+- [Solus](https://dev.getsol.us/source/flameshot/): `eopkg it flameshot`
 - Fedora: `dnf install flameshot`
 - [Snap/Flatpak/AppImage](https://github.com/flameshotapp/packages)
-- [Solus](https://dev.getsol.us/source/flameshot/): `eopkg it flameshot`
-- Besides, generic packages available via [opensuse software repository](https://software.opensuse.org//download.html?project=home%3AVitzy&package=flameshot)
+- [Docker](https://github.com/ManuelLR/docker-flameshot)
 
 <details>
   <summary>Expand this section to see what distros are using an up to date version of flameshot</summary>
@@ -264,6 +305,14 @@ some Linux distributions:
     <img src="https://repology.org/badge/vertical-allrepos/flameshot.svg" alt="Packaging status">
   </a>
 </details>
+
+### Tray icon
+
+**Note** that for the Flameshot icon to appear in your tray area, you should have a systray software installed. This is especially true for users who use minimal [window managers](https://wiki.archlinux.org/index.php/window_manager) such as [dwm](https://dwm.suckless.org/). In some [Desktop Environment](https://wiki.archlinux.org/index.php/Desktop_environment) installations (e.g Gnome), the systray might be missing and you can install an application or plugin (e.g [Gnome shell extension](https://extensions.gnome.org/extension/1503/tray-icons/)) to add the systray to your setup. It has been [reported](https://github.com/flameshot-org/flameshot/issues/1009#issuecomment-700781081)) that icon of some softwares, including Flameshot, does not show in [gnome-shell-extension-appindicator](https://github.com/ubuntu/gnome-shell-extension-appindicator).
+
+
+Alternatively, in case you don't want to have a systray, you can always call Flameshot from the terminal. See [Usage section](#usage).
+
 
 ## Compilation
 
@@ -359,11 +408,17 @@ Note: If you install from source, there is no uninstaller, you will need to manu
 
 Info: If I take code from your project and that implies a relicense to GPLv3, you can reuse my changes with the original previous license of your project applied.
 
+## Privacy Policy
+This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.
+
+
+## Code Signing Policy
+Free code signing provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+
+Code signing is currently a manual process so not every patch release will be signed. 
+
 ## Contribute
-
 If you want to contribute check the [CONTRIBUTING.md](docs/CONTRIBUTING.md)
-
-
 
 ## Acknowledgment
 Thanks to those who have shown interest in the early development process:
@@ -372,3 +427,7 @@ Thanks to those who have shown interest in the early development process:
 - [XerTheSquirrel](https://github.com/XerTheSquirrel)
 - [The members of Sugus GNU/Linux](https://github.com/SUGUS-GNULinux)
 - ismatori
+
+Thanks to sponsors:
+- JetBrains
+- SignPath

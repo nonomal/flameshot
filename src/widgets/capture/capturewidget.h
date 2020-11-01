@@ -39,11 +39,9 @@
 class QPaintEvent;
 class QResizeEvent;
 class QMouseEvent;
-class CaptureModification;
 class QNetworkAccessManager;
 class QNetworkReply;
 class ColorPicker;
-class Screenshot;
 class NotifierBox;
 class HoverEventFilter;
 
@@ -62,10 +60,11 @@ public:
     QPixmap pixmap();
 
 public slots:
+    bool commitCurrentTool();
     void deleteToolwidgetOrClose();
 
 signals:
-    void captureTaken(uint id, QPixmap p);
+    void captureTaken(uint id, QPixmap p, QRect selection);
     void captureFailed(uint id);
     void colorChanged(const QColor& c);
     void thicknessChanged(const int thickness);
@@ -81,10 +80,15 @@ private slots:
     void childEnter();
     void childLeave();
 
-    void leftResize();
-    void rightResize();
-    void upResize();
-    void downResize();
+    void resizeLeft();
+    void resizeRight();
+    void resizeUp();
+    void resizeDown();
+
+    void moveLeft();
+    void moveRight();
+    void moveUp();
+    void moveDown();
 
     void setState(CaptureToolButton* b);
     void processTool(CaptureTool* t);
@@ -136,9 +140,15 @@ private:
     void pushToolToStack();
     void makeChild(QWidget* w);
 
+    void repositionSelection(QRect r);
+    void adjustSelection(QMargins m);
+    void moveSelection(QPoint p);
+
+private:
     QRect extendedSelection() const;
     QRect extendedRect(QRect* r) const;
 
+private:
     QUndoStack m_undoStack;
     QPointer<CaptureToolButton> m_sizeIndButton;
     // Last pressed button

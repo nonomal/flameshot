@@ -18,18 +18,17 @@
 #include "geneneralconf.h"
 #include "src/core/controller.h"
 #include "src/utils/confighandler.h"
-#include "src/utils/filenamehandler.h"
 #include <QCheckBox>
 #include <QFile>
 #include <QFileDialog>
 #include <QGroupBox>
-#include <QHBoxLayout>
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QStandardPaths>
 #include <QTextCodec>
 #include <QVBoxLayout>
+
 GeneneralConf::GeneneralConf(QWidget* parent)
   : QWidget(parent)
 {
@@ -40,8 +39,6 @@ GeneneralConf::GeneneralConf(QWidget* parent)
     initShowDesktopNotification();
     initShowTrayIcon();
     initAutostart();
-    initCloseAfterCapture();
-    initCopyAndCloseAfterUpload();
     initSaveAfterCopy();
 
     // this has to be at the end
@@ -56,9 +53,6 @@ void GeneneralConf::updateComponents()
     m_sidePanelButton->setChecked(config.showSidePanelButtonValue());
     m_sysNotifications->setChecked(config.desktopNotificationValue());
     m_autostart->setChecked(config.startupLaunchValue());
-    m_closeAfterCapture->setChecked(config.closeAfterScreenshotValue());
-    m_copyAndCloseAfterUpload->setChecked(
-      config.copyAndCloseAfterUploadEnabled());
     m_saveAfterCopy->setChecked(config.saveAfterCopyValue());
 
     if (!config.saveAfterCopyPathValue().isEmpty()) {
@@ -67,7 +61,6 @@ void GeneneralConf::updateComponents()
         ConfigHandler().setSaveAfterCopyPath(
           QStandardPaths::writableLocation(QStandardPaths::PicturesLocation));
     }
-
 #if defined(Q_OS_LINUX) || defined(Q_OS_UNIX)
     m_showTray->setChecked(!config.disabledTrayIconValue());
 #endif
@@ -101,11 +94,6 @@ void GeneneralConf::showTrayIconChanged(bool checked)
 void GeneneralConf::autostartChanged(bool checked)
 {
     ConfigHandler().setStartupLaunch(checked);
-}
-
-void GeneneralConf::closeAfterCaptureChanged(bool checked)
-{
-    ConfigHandler().setCloseAfterScreenshot(checked);
 }
 
 void GeneneralConf::importConfiguration()
@@ -270,37 +258,6 @@ void GeneneralConf::initAutostart()
       m_autostart, &QCheckBox::clicked, this, &GeneneralConf::autostartChanged);
 }
 
-void GeneneralConf::initCloseAfterCapture()
-{
-    m_closeAfterCapture = new QCheckBox(tr("Close after capture"), this);
-    ConfigHandler config;
-    bool checked = config.closeAfterScreenshotValue();
-    m_closeAfterCapture->setChecked(checked);
-    m_closeAfterCapture->setToolTip(tr("Close after taking a screenshot"));
-    m_layout->addWidget(m_closeAfterCapture);
-
-    connect(m_closeAfterCapture,
-            &QCheckBox::clicked,
-            this,
-            &GeneneralConf::closeAfterCaptureChanged);
-}
-
-void GeneneralConf::initCopyAndCloseAfterUpload()
-{
-    m_copyAndCloseAfterUpload =
-      new QCheckBox(tr("Copy URL after upload"), this);
-    ConfigHandler config;
-    m_copyAndCloseAfterUpload->setChecked(
-      config.copyAndCloseAfterUploadEnabled());
-    m_copyAndCloseAfterUpload->setToolTip(
-      tr("Copy URL and close window after upload"));
-    m_layout->addWidget(m_copyAndCloseAfterUpload);
-
-    connect(m_copyAndCloseAfterUpload, &QCheckBox::clicked, [](bool checked) {
-        ConfigHandler().setCopyAndCloseAfterUploadEnabled(checked);
-    });
-}
-
 void GeneneralConf::initSaveAfterCopy()
 {
     m_saveAfterCopy = new QCheckBox(tr("Save image after copy"), this);
@@ -311,12 +268,15 @@ void GeneneralConf::initSaveAfterCopy()
             this,
             &GeneneralConf::saveAfterCopyChanged);
 
-    QHBoxLayout* pathLayout = new QHBoxLayout();
-    m_layout->addStretch();
     QGroupBox* box = new QGroupBox(tr("Save Path"));
     box->setFlat(true);
-    box->setLayout(pathLayout);
     m_layout->addWidget(box);
+    m_layout->addStretch();
+
+    QVBoxLayout* vboxLayout = new QVBoxLayout();
+    box->setLayout(vboxLayout);
+
+    QHBoxLayout* pathLayout = new QHBoxLayout();
 
     m_savePath = new QLineEdit(
       QStandardPaths::writableLocation(QStandardPaths::PicturesLocation), this);
@@ -331,6 +291,17 @@ void GeneneralConf::initSaveAfterCopy()
             &QPushButton::clicked,
             this,
             &GeneneralConf::changeSavePath);
+
+    m_screenshotPathFixedCheck =
+      new QCheckBox(tr("Use fixed path for screenshots to save"), this);
+    m_screenshotPathFixedCheck->setChecked(ConfigHandler().savePathFixed());
+    connect(m_screenshotPathFixedCheck,
+            SIGNAL(toggled(bool)),
+            this,
+            SLOT(togglePathFixed()));
+
+    vboxLayout->addLayout(pathLayout);
+    vboxLayout->addWidget(m_screenshotPathFixedCheck);
 }
 
 void GeneneralConf::saveAfterCopyChanged(bool checked)
@@ -340,19 +311,40 @@ void GeneneralConf::saveAfterCopyChanged(bool checked)
 
 void GeneneralConf::changeSavePath()
 {
-    QString path = QFileDialog::getExistingDirectory(
+    QString path = chooseFolder(
+      QStandardPaths::writableLocation(QStandardPaths::PicturesLocation));
+    if (!path.isEmpty()) {
+        m_savePath->setText(path);
+        ConfigHandler().setSaveAfterCopyPath(path);
+    }
+}
+
+const QString GeneneralConf::chooseFolder(const QString pathDefault)
+{
+    QString path;
+    if (pathDefault.isEmpty()) {
+        path =
+          QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+    }
+    path = QFileDialog::getExistingDirectory(
       this,
       tr("Choose a Folder"),
-      QStandardPaths::writableLocation(QStandardPaths::PicturesLocation),
+      path,
       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if (path.isEmpty()) {
-        return;
+        return path;
     }
-    if (!QFileInfo(path).isWritable()) {
-        QMessageBox::about(
-          this, tr("Error"), tr("Unable to write to directory."));
-        return;
+    if (!path.isEmpty()) {
+        if (!QFileInfo(path).isWritable()) {
+            QMessageBox::about(
+              this, tr("Error"), tr("Unable to write to directory."));
+            return QString();
+        }
     }
-    m_savePath->setText(path);
-    ConfigHandler().setSaveAfterCopyPath(path);
+    return path;
+}
+
+void GeneneralConf::togglePathFixed()
+{
+    ConfigHandler().setSavePathFixed(m_screenshotPathFixedCheck->isChecked());
 }

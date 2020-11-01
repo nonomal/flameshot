@@ -30,6 +30,7 @@ class ConfigWindow;
 class InfoWindow;
 class QSystemTrayIcon;
 class CaptureLauncher;
+class HistoryWidget;
 using lambda = std::function<void(void)>;
 
 class Controller : public QObject
@@ -40,12 +41,14 @@ public:
     static Controller* getInstance();
 
     Controller(const Controller&) = delete;
+    ~Controller();
     void operator=(const Controller&) = delete;
 
     void enableExports();
+    void updateRecentScreenshots();
 
 signals:
-    void captureTaken(uint id, QPixmap p);
+    void captureTaken(uint id, QPixmap p, QRect selection);
     void captureFailed(uint id);
 
 public slots:
@@ -63,13 +66,15 @@ public slots:
 
     void updateConfigComponents();
 
+    void showRecentScreenshots();
+
 private slots:
     void startFullscreenCapture(const uint id = 0);
     void startVisualCapture(const uint id = 0,
                             const QString& forcedSavePath = QString());
     void startScreenGrab(const uint id = 0, const int screenNumber = -1);
 
-    void handleCaptureTaken(uint id, QPixmap p);
+    void handleCaptureTaken(uint id, QPixmap p, QRect selection);
     void handleCaptureFailed(uint id);
 
 private:
@@ -85,4 +90,6 @@ private:
     QPointer<CaptureLauncher> m_launcherWindow;
     QPointer<ConfigWindow> m_configWindow;
     QPointer<QSystemTrayIcon> m_trayIcon;
+
+    HistoryWidget* m_history;
 };
