@@ -19,11 +19,11 @@
 
 #include "src/tools/abstractactiontool.h"
 
-class SizedecreaseTool : public AbstractActionTool
+class SizeDecreaseTool : public AbstractActionTool
 {
     Q_OBJECT
 public:
-    explicit SizedecreaseTool(QObject* parent = nullptr);
+    explicit SizeDecreaseTool(QObject* parent = nullptr);
 
     bool closeOnButtonPressed() const;
 

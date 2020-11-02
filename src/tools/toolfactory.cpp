@@ -110,10 +110,10 @@ CaptureTool* ToolFactory::CreateTool(CaptureToolButton::ButtonType t,
             tool = new CircleCountTool(parent);
             break;
         case CaptureToolButton::TYPE_SIZEINCREASE:
-            tool = new SizeincreaseTool(parent);
+            tool = new SizeIncreaseTool(parent);
             break;
         case CaptureToolButton::TYPE_SIZEDECREASE:
-            tool = new SizedecreaseTool(parent);
+            tool = new SizeDecreaseTool(parent);
             break;
         default:
             tool = nullptr;

@@ -18,41 +18,41 @@
 #include "sizeincreasetool.h"
 #include <QPainter>
 
-SizeincreaseTool::SizeincreaseTool(QObject* parent)
+SizeIncreaseTool::SizeIncreaseTool(QObject* parent)
   : AbstractActionTool(parent)
 {}
 
-bool SizeincreaseTool::closeOnButtonPressed() const
+bool SizeIncreaseTool::closeOnButtonPressed() const
 {
     return false;
 }
 
-QIcon SizeincreaseTool::icon(const QColor& background, bool inEditor) const
+QIcon SizeIncreaseTool::icon(const QColor& background, bool inEditor) const
 {
     Q_UNUSED(inEditor);
     return QIcon(iconPath(background) + "plus.svg");
 }
-QString SizeincreaseTool::name() const
+QString SizeIncreaseTool::name() const
 {
     return tr("Increase Tool Size");
 }
 
-ToolType SizeincreaseTool::nameID() const
+ToolType SizeIncreaseTool::nameID() const
 {
     return ToolType::SIZEINCREASE;
 }
 
-QString SizeincreaseTool::description() const
+QString SizeIncreaseTool::description() const
 {
     return tr("Increase the size of the other tools");
 }
 
-CaptureTool* SizeincreaseTool::copy(QObject* parent)
+CaptureTool* SizeIncreaseTool::copy(QObject* parent)
 {
-    return new SizeincreaseTool(parent);
+    return new SizeIncreaseTool(parent);
 }
 
-void SizeincreaseTool::pressed(const CaptureContext& context)
+void SizeIncreaseTool::pressed(const CaptureContext& context)
 {
     Q_UNUSED(context);
     emit requestAction(REQ_INCREASE_TOOL_SIZE);

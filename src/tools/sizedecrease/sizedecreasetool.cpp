@@ -18,41 +18,41 @@
 #include "sizedecreasetool.h"
 #include <QPainter>
 
-SizedecreaseTool::SizedecreaseTool(QObject* parent)
+SizeDecreaseTool::SizeDecreaseTool(QObject* parent)
   : AbstractActionTool(parent)
 {}
 
-bool SizedecreaseTool::closeOnButtonPressed() const
+bool SizeDecreaseTool::closeOnButtonPressed() const
 {
     return false;
 }
 
-QIcon SizedecreaseTool::icon(const QColor& background, bool inEditor) const
+QIcon SizeDecreaseTool::icon(const QColor& background, bool inEditor) const
 {
     Q_UNUSED(inEditor);
     return QIcon(iconPath(background) + "minus.svg");
 }
-QString SizedecreaseTool::name() const
+QString SizeDecreaseTool::name() const
 {
     return tr("Increase Tool Size");
 }
 
-ToolType SizedecreaseTool::nameID() const
+ToolType SizeDecreaseTool::nameID() const
 {
     return ToolType::SIZEDECREASE;
 }
 
-QString SizedecreaseTool::description() const
+QString SizeDecreaseTool::description() const
 {
     return tr("Decrease the size of the other tools");
 }
 
-CaptureTool* SizedecreaseTool::copy(QObject* parent)
+CaptureTool* SizeDecreaseTool::copy(QObject* parent)
 {
-    return new SizedecreaseTool(parent);
+    return new SizeDecreaseTool(parent);
 }
 
-void SizedecreaseTool::pressed(const CaptureContext& context)
+void SizeDecreaseTool::pressed(const CaptureContext& context)
 {
     Q_UNUSED(context);
     emit requestAction(REQ_DECREASE_TOOL_SIZE);
