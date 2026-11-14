@@ -3,9 +3,10 @@
 
 #pragma once
 
-#include "src/tools/capturecontext.h"
-#include "src/utils/colorutils.h"
-#include "src/utils/pathinfo.h"
+#include "tools/capturecontext.h"
+#include "utils/colorutils.h"
+#include "utils/pathinfo.h"
+
 #include <QIcon>
 #include <QPainter>
 
@@ -31,13 +32,14 @@ public:
         TYPE_RECTANGLE = 4,
         TYPE_CIRCLE = 5,
         TYPE_MARKER = 6,
-        TYPE_SELECTIONINDICATOR = 7,
         TYPE_MOVESELECTION = 8,
         TYPE_UNDO = 9,
         TYPE_COPY = 10,
         TYPE_SAVE = 11,
         TYPE_EXIT = 12,
+#ifdef ENABLE_IMGUR
         TYPE_IMAGEUPLOADER = 13,
+#endif
         TYPE_OPEN_APP = 14,
         TYPE_PIXELATE = 15,
         TYPE_REDO = 16,
@@ -48,6 +50,7 @@ public:
         TYPE_SIZEDECREASE = 21,
         TYPE_INVERT = 22,
         TYPE_ACCEPT = 23,
+        TYPE_CANCEL = 24,
     };
     Q_ENUM(Type);
 
@@ -66,6 +69,8 @@ public:
         REQ_SHOW_COLOR_PICKER,
         // Notify is the screenshot has been saved.
         REQ_CAPTURE_DONE_OK,
+        // Notify to redraw screenshot with tools without object selection.
+        REQ_CLEAR_SELECTION,
         // Instance this->widget()'s widget inside the editor under the mouse.
         REQ_ADD_CHILD_WIDGET,
         // Instance this->widget()'s widget which handles its own lifetime.
@@ -73,7 +78,9 @@ public:
         // increase tool size for all tools
         REQ_INCREASE_TOOL_SIZE,
         // decrease tool size for all tools
-        REQ_DECREASE_TOOL_SIZE
+        REQ_DECREASE_TOOL_SIZE,
+        // Commit the active tool.
+        REQ_COMMIT_CURRENT_TOOL
     };
 
     explicit CaptureTool(QObject* parent = nullptr)
@@ -100,6 +107,12 @@ public:
         return {};
     };
     virtual QRect boundingRect() const = 0;
+    virtual bool handleMouseWheelEvent(int delta,
+                                       bool adjustmentButtonPressed,
+                                       CaptureContext& context)
+    {
+        return false;
+    }
 
     // The icon of the tool.
     // inEditor is true when the icon is requested inside the editor
@@ -189,7 +202,7 @@ public slots:
     virtual void drawMoveWithAdjustment(const QPoint& p) { drawMove(p); }
     // Called when the tool is activated.
     virtual void drawStart(const CaptureContext& context) = 0;
-    // Called right after pressign the button which activates the tool.
+    // Called right after pressing the button which activates the tool.
     virtual void pressed(CaptureContext& context) = 0;
     // Called when the color is changed in the editor.
     virtual void onColorChanged(const QColor& c) = 0;

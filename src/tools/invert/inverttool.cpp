@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "inverttool.h"
+
 #include <QApplication>
 #include <QGraphicsBlurEffect>
 #include <QGraphicsPixmapItem>
@@ -49,14 +50,17 @@ CaptureTool* InvertTool::copy(QObject* parent)
 
 void InvertTool::process(QPainter& painter, const QPixmap& pixmap)
 {
-    QRect selection = boundingRect();
+    QRect selection = boundingRect().intersected(pixmap.rect());
+    auto pixelRatio = pixmap.devicePixelRatio();
+    QRect selectionScaled = QRect(selection.topLeft() * pixelRatio,
+                                  selection.bottomRight() * pixelRatio);
 
     // Invert selection
-    QPixmap inv = pixmap.copy(selection);
+    QPixmap inv = pixmap.copy(selectionScaled);
     QImage img = inv.toImage();
     img.invertPixels();
 
-    painter.drawImage(selection.intersected(pixmap.rect()), img);
+    painter.drawImage(selection, img);
 }
 
 void InvertTool::drawSearchArea(QPainter& painter, const QPixmap& pixmap)

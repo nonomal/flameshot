@@ -3,12 +3,15 @@
 
 #pragma once
 
+#include <QComboBox>
+#include <QTabWidget>
 #include <QWidget>
 
 class ExtendedSlider;
 class QVBoxLayout;
 class ButtonListView;
 class UIcolorEditor;
+class ColorPickerEditor;
 
 class VisualsEditor : public QWidget
 {
@@ -21,10 +24,21 @@ public slots:
 
 private:
     QVBoxLayout* m_layout;
-    ButtonListView* m_buttonList;
+
+    QTabWidget* m_tabWidget;
+
     UIcolorEditor* m_colorEditor;
+    QWidget* m_colorEditorTab;
+
+    ColorPickerEditor* m_colorpickerEditor;
+    QWidget* m_colorpickerEditorTab;
+
+    ButtonListView* m_buttonList;
     ExtendedSlider* m_opacitySlider;
+
+    QComboBox* m_selectTranslation;
 
     void initWidgets();
     void initOpacitySlider();
+    void initTranslations();
 };

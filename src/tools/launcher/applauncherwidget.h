@@ -3,8 +3,17 @@
 
 #pragma once
 
-#include "src/utils/desktopfileparse.h"
+// Must be included before #if def, otherwise Q_OS_WIN is unknown
+#include <QSysInfo>
+
+#if defined(Q_OS_WIN)
+#include "utils/winlnkfileparse.h"
+#else
+#include "utils/desktopfileparse.h"
+#endif
+
 #include <QMap>
+#include <QTemporaryFile>
 #include <QWidget>
 
 class QTabWidget;
@@ -32,9 +41,13 @@ private:
                              const QVector<DesktopAppData>& appList);
     void keyPressEvent(QKeyEvent* keyEvent) override;
 
+#if defined(Q_OS_WIN)
+    WinLnkFileParser m_parser;
+#else
     DesktopFileParser m_parser;
+#endif
     QPixmap m_pixmap;
-    QString m_tempFile;
+    QTemporaryFile* m_tempFile = nullptr;
     bool m_keepOpen;
     QMap<QString, QVector<DesktopAppData>> m_appsMap;
     QCheckBox* m_keepOpenCheckbox;

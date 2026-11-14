@@ -2,11 +2,12 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "buttonhandler.h"
-#include "src/utils/globalvalues.h"
+#include "utils/globalvalues.h"
+
 #include <QPoint>
 #include <QScreen>
 
-// ButtonHandler is a habdler for every active button. It makes easier to
+// ButtonHandler is a handler for every active button. It makes easier to
 // manipulate the buttons as a unit.
 
 ButtonHandler::ButtonHandler(const QVector<CaptureToolButton*>& v,
@@ -25,8 +26,9 @@ ButtonHandler::ButtonHandler(QObject* parent)
 
 void ButtonHandler::hide()
 {
-    for (CaptureToolButton* b : m_vectorButtons)
+    for (CaptureToolButton* b : m_vectorButtons) {
         b->hide();
+    }
 }
 
 void ButtonHandler::show()
@@ -34,8 +36,9 @@ void ButtonHandler::show()
     if (m_vectorButtons.isEmpty() || m_vectorButtons.first()->isVisible()) {
         return;
     }
-    for (CaptureToolButton* b : m_vectorButtons)
+    for (CaptureToolButton* b : m_vectorButtons) {
         b->animatedShow();
+    }
 }
 
 bool ButtonHandler::isVisible() const
@@ -62,7 +65,7 @@ size_t ButtonHandler::size() const
 
 // updatePosition updates the position of the buttons around the
 // selection area. Ignores the sides blocked by the end of the screen.
-// When the selection is too small it works on a virtual selection with
+// When the selection is too small, it works on a virtual selection with
 // the original in the center.
 void ButtonHandler::updatePosition(const QRect& selection)
 {
@@ -74,7 +77,7 @@ void ButtonHandler::updatePosition(const QRect& selection)
     // Copy of the selection area for internal modifications
     m_selection = intersectWithAreas(selection);
     updateBlockedSides();
-    ensureSelectionMinimunSize();
+    ensureSelectionMinimumSize();
     // Indicates the actual button to be moved
     int elemIndicator = 0;
 
@@ -120,7 +123,7 @@ void ButtonHandler::updatePosition(const QRect& selection)
               horizontalPoints(center, addCounter, true);
             moveButtonsToPoints(positions, elemIndicator);
         }
-        // Add buttons at the right side of the selection
+        // Add buttons to the right side of the selection
         if (!m_blockedRight && elemIndicator < vecLength) {
             int addCounter = buttonsPerCol;
             addCounter = qBound(0, addCounter, vecLength - elemIndicator);
@@ -144,7 +147,7 @@ void ButtonHandler::updatePosition(const QRect& selection)
               horizontalPoints(center, addCounter, false);
             moveButtonsToPoints(positions, elemIndicator);
         }
-        // Add buttons at the left side of the selection
+        // Add buttons to the left side of the selection
         if (!m_blockedLeft && elemIndicator < vecLength) {
             int addCounter = buttonsPerCol;
             addCounter = qBound(0, addCounter, vecLength - elemIndicator);
@@ -164,6 +167,21 @@ void ButtonHandler::updatePosition(const QRect& selection)
     }
 }
 
+int ButtonHandler::calculateShift(int elements, bool reverse) const
+{
+    int shift = 0;
+    if (elements % 2 == 0) {
+        shift = m_buttonExtendedSize * (elements / 2) - (m_separator / 2);
+    } else {
+        shift =
+          m_buttonExtendedSize * ((elements - 1) / 2) + m_buttonBaseSize / 2;
+    }
+    if (!reverse) {
+        shift -= m_buttonBaseSize;
+    }
+
+    return shift;
+}
 // horizontalPoints is an auxiliary method for the button position computation.
 // starts from a known center and keeps adding elements horizontally
 // and returns the computed positions.
@@ -173,16 +191,8 @@ QVector<QPoint> ButtonHandler::horizontalPoints(const QPoint& center,
 {
     QVector<QPoint> res;
     // Distance from the center to start adding buttons
-    int shift = 0;
-    if (elements % 2 == 0) {
-        shift = m_buttonExtendedSize * (elements / 2) - (m_separator / 2);
-    } else {
-        shift =
-          m_buttonExtendedSize * ((elements - 1) / 2) + m_buttonBaseSize / 2;
-    }
-    if (!leftToRight) {
-        shift -= m_buttonBaseSize;
-    }
+    int shift = calculateShift(elements, leftToRight);
+
     int x = leftToRight ? center.x() - shift : center.x() + shift;
     QPoint i(x, center.y());
     while (elements > res.length()) {
@@ -202,16 +212,8 @@ QVector<QPoint> ButtonHandler::verticalPoints(const QPoint& center,
 {
     QVector<QPoint> res;
     // Distance from the center to start adding buttons
-    int shift = 0;
-    if (elements % 2 == 0) {
-        shift = m_buttonExtendedSize * (elements / 2) - (m_separator / 2);
-    } else {
-        shift =
-          m_buttonExtendedSize * ((elements - 1) / 2) + m_buttonBaseSize / 2;
-    }
-    if (!upToDown) {
-        shift -= m_buttonBaseSize;
-    }
+    int shift = calculateShift(elements, upToDown);
+
     int y = upToDown ? center.y() - shift : center.y() + shift;
     QPoint i(center.x(), y);
     while (elements > res.length()) {
@@ -311,10 +313,10 @@ void ButtonHandler::positionButtonsInside(int index)
     m_buttonsAreInside = true;
 }
 
-void ButtonHandler::ensureSelectionMinimunSize()
+void ButtonHandler::ensureSelectionMinimumSize()
 {
     // Detect if a side is smaller than a button in order to prevent collision
-    // and redimension the base area the the base size of a single button per
+    // and redimension the base area to the base size of a single button per
     // side
     if (m_selection.width() < m_buttonBaseSize) {
         if (!m_blockedLeft) {
@@ -336,7 +338,7 @@ void ButtonHandler::moveButtonsToPoints(const QVector<QPoint>& points,
                                         int& index)
 {
     for (const QPoint& p : points) {
-        auto button = m_vectorButtons[index];
+        auto* button = m_vectorButtons[index];
         button->move(p);
         ++index;
     }
@@ -352,13 +354,15 @@ void ButtonHandler::adjustHorizontalCenter(QPoint& center)
 }
 
 // setButtons redefines the buttons of the button handler
-void ButtonHandler::setButtons(const QVector<CaptureToolButton*> v)
+void ButtonHandler::setButtons(const QVector<CaptureToolButton*>& v)
 {
-    if (v.isEmpty())
+    if (v.isEmpty()) {
         return;
+    }
 
-    for (CaptureToolButton* b : m_vectorButtons)
+    for (CaptureToolButton* b : m_vectorButtons) {
         delete (b);
+    }
     m_vectorButtons = v;
     m_buttonBaseSize = GlobalValues::buttonBaseSize();
     m_buttonExtendedSize = m_buttonBaseSize + m_separator;

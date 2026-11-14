@@ -2,8 +2,7 @@
 // Created by yuriypuchkov on 09.12.2020.
 //
 
-#ifndef FLAMESHOT_UPDATENOTIFICATIONWIDGET_H
-#define FLAMESHOT_UPDATENOTIFICATIONWIDGET_H
+#pragma once
 
 #include <QPointer>
 #include <QWidget>
@@ -20,7 +19,7 @@ class UpdateNotificationWidget : public QWidget
 public:
     explicit UpdateNotificationWidget(QWidget* parent,
                                       const QString& appLatestVersion,
-                                      const QString& appLatestUrl);
+                                      QString appLatestUrl);
     void setAppLatestVersion(const QString& latestVersion);
 
     void hide();
@@ -43,5 +42,3 @@ private:
     QPropertyAnimation* m_showAnimation;
     QPropertyAnimation* m_hideAnimation;
 };
-
-#endif // FLAMESHOT_UPDATENOTIFICATIONWIDGET_H

@@ -1,12 +1,17 @@
 #include "valuehandler.h"
-#include "capturetool.h"
-#include "confighandler.h"
+#include "tools/capturetool.h"
+#include "utils/confighandler.h"
+#include "utils/screengrabber.h"
+#include "widgets/colorpickerwidget.h"
+
 #include <QColor>
 #include <QFileInfo>
 #include <QImageWriter>
 #include <QKeySequence>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QVariant>
+#include <memory>
 
 // VALUE HANDLER
 
@@ -21,7 +26,7 @@ QVariant ValueHandler::value(const QVariant& val)
 
 QVariant ValueHandler::fallback()
 {
-    return QVariant();
+    return {};
 }
 
 QVariant ValueHandler::representation(const QVariant& val)
@@ -66,8 +71,8 @@ QString Bool::expected()
 
 // STRING
 
-String::String(const QString& def)
-  : m_def(def)
+String::String(QString def)
+  : m_def(std::move(def))
 {}
 
 bool String::check(const QVariant&)
@@ -87,15 +92,20 @@ QString String::expected()
 
 // COLOR
 
-Color::Color(const QColor& def)
-  : m_def(def)
+Color::Color(QColor def)
+  : m_def(std::move(def))
 {}
 
 bool Color::check(const QVariant& val)
 {
     QString str = val.toString();
+#if QT_VERSION < QT_VERSION_CHECK(6, 4, 0)
+    bool validColor = QColor::isValidColor(str);
+#else
+    bool validColor = QColor::isValidColorName(str);
+#endif
     // Disable #RGB, #RRRGGGBBB and #RRRRGGGGBBBB formats that QColor supports
-    return QColor::isValidColor(str) &&
+    return validColor &&
            (str[0] != '#' ||
             (str.length() != 4 && str.length() != 10 && str.length() != 13));
 }
@@ -163,7 +173,7 @@ QVariant BoundedInt::fallback()
 
 QString BoundedInt::expected()
 {
-    return QStringLiteral("number between %1 and %2").arg(m_min).arg(m_max);
+    return QStringLiteral("number between %1 and %2").arg(m_min, m_max);
 }
 
 // LOWER BOUNDED INT
@@ -208,7 +218,7 @@ bool KeySequence::check(const QVariant& val)
 
 QVariant KeySequence::fallback()
 {
-    return m_fallback;
+    return process(m_fallback);
 }
 
 QString KeySequence::expected()
@@ -231,6 +241,10 @@ QVariant KeySequence::process(const QVariant& val)
     if (str == "Enter") {
         return QKeySequence(Qt::Key_Return).toString();
     }
+    if (str.length() > 0) {
+        // Make the "main" key in sequence (last one) lower-case.
+        str[str.length() - 1] = str[str.length() - 1].toLower();
+    }
     return str;
 }
 
@@ -238,7 +252,7 @@ QVariant KeySequence::process(const QVariant& val)
 
 bool ExistingDir::check(const QVariant& val)
 {
-    if (!val.canConvert(QVariant::String) || val.toString().isEmpty()) {
+    if (!val.canConvert<QString>() || val.toString().isEmpty()) {
         return false;
     }
     QFileInfo info(val.toString());
@@ -315,7 +329,7 @@ void sortButtons(BList& buttons)
 
 QVariant ButtonList::process(const QVariant& val)
 {
-    QList<int> intButtons = val.value<QList<int>>();
+    auto intButtons = val.value<QList<int>>();
     auto buttons = ButtonList::fromIntList(intButtons);
     sortButtons(buttons);
     return QVariant::fromValue(buttons);
@@ -346,8 +360,9 @@ QList<CaptureTool::Type> ButtonList::fromIntList(const QList<int>& l)
 {
     QList<CaptureTool::Type> buttons;
     buttons.reserve(l.size());
-    for (auto const i : l)
+    for (auto const i : l) {
         buttons << static_cast<CaptureTool::Type>(i);
+    }
     return buttons;
 }
 
@@ -355,8 +370,9 @@ QList<int> ButtonList::toIntList(const QList<CaptureTool::Type>& l)
 {
     QList<int> buttons;
     buttons.reserve(l.size());
-    for (auto const i : l)
+    for (auto const i : l) {
         buttons << static_cast<int>(i);
+    }
     return buttons;
 }
 
@@ -377,20 +393,32 @@ bool ButtonList::normalizeButtons(QList<int>& buttons)
 
 // USER COLORS
 
+UserColors::UserColors(int min, int max)
+  : m_min(min)
+  , m_max(max)
+{}
+
 bool UserColors::check(const QVariant& val)
 {
     if (!val.isValid()) {
-        return true;
+        return false;
     }
-    if (!val.canConvert(QVariant::StringList)) {
+    if (!val.canConvert<QStringList>()) {
         return false;
     }
     for (const QString& str : val.toStringList()) {
+#if QT_VERSION < QT_VERSION_CHECK(6, 4, 0)
         if (!QColor::isValidColor(str) && str != "picker") {
+#else
+        if (!QColor::isValidColorName(str) && str != "picker") {
+#endif
             return false;
         }
     }
-    return true;
+
+    int sz = val.toStringList().size();
+
+    return sz >= m_min && sz <= m_max;
 }
 
 QVariant UserColors::process(const QVariant& val)
@@ -416,41 +444,60 @@ QVariant UserColors::process(const QVariant& val)
 
 QVariant UserColors::fallback()
 {
-    return QVariant::fromValue(QVector<QColor>{ Qt::darkRed,
-                                                Qt::red,
-                                                Qt::yellow,
-                                                Qt::green,
-                                                Qt::darkGreen,
-                                                Qt::cyan,
-                                                Qt::blue,
-                                                Qt::magenta,
-                                                Qt::darkMagenta,
-                                                QColor() });
+    if (ConfigHandler().predefinedColorPaletteLarge()) {
+        return QVariant::fromValue(
+          ColorPickerWidget::getDefaultLargeColorPalette());
+    } else {
+        return QVariant::fromValue(
+          ColorPickerWidget::getDefaultSmallColorPalette());
+    }
 }
 
 QString UserColors::expected()
 {
-    return QStringLiteral("list of colors separated by comma");
+    return QStringLiteral(
+             "list of colors(min %1 and max %2) separated by comma")
+      .arg(m_min - 1, m_max - 1);
+}
+
+QVariant UserColors::representation(const QVariant& val)
+{
+    auto colors = val.value<QVector<QColor>>();
+
+    QStringList strColors;
+
+    for (const auto& col : colors) {
+        if (col.isValid()) {
+            strColors.append(col.name(QColor::HexRgb));
+        } else {
+            strColors.append(QStringLiteral("picker"));
+        }
+    }
+
+    return QVariant::fromValue(strColors);
 }
 
 // SET SAVE FILE AS EXTENSION
 
 bool SaveFileExtension::check(const QVariant& val)
 {
-    if (!val.canConvert(QVariant::String) || val.toString().isEmpty())
+    if (!val.canConvert<QString>() || val.toString().isEmpty()) {
         return false;
+    }
 
     QString extension = val.toString();
 
-    if (extension.startsWith("."))
+    if (extension.startsWith(".")) {
         extension.remove(0, 1);
+    }
 
     QStringList imageFormatList;
-    foreach (auto imageFormat, QImageWriter::supportedImageFormats())
+    for (const auto& imageFormat : QImageWriter::supportedImageFormats())
         imageFormatList.append(imageFormat);
 
-    if (!imageFormatList.contains(extension))
+    if (!imageFormatList.contains(extension)) {
         return false;
+    }
 
     return true;
 }
@@ -459,8 +506,9 @@ QVariant SaveFileExtension::process(const QVariant& val)
 {
     QString extension = val.toString();
 
-    if (extension.startsWith("."))
+    if (extension.startsWith(".")) {
         extension.remove(0, 1);
+    }
 
     return QVariant::fromValue(extension);
 }
@@ -468,4 +516,59 @@ QVariant SaveFileExtension::process(const QVariant& val)
 QString SaveFileExtension::expected()
 {
     return QStringLiteral("supported image extension");
+}
+
+// REGION
+
+bool Region::check(const QVariant& val)
+{
+    QVariant region = process(val);
+    return region.isValid();
+}
+
+#include <QApplication> // TODO remove after FIXME (see below)
+#include <utility>
+
+QVariant Region::process(const QVariant& val)
+{
+    // Create a temporary QApplication if there is no global Qt application
+    // instance at all. Creating one while a QCoreApplication already exists
+    // is forbidden by Qt: the second constructor aborts early, but its
+    // destructor still runs and corrupts global state (e.g. Wayland
+    // connections), causing subsequent portal calls to hang.
+    auto argv = std::make_unique<char*[]>(1);
+    auto argc = std::make_unique<int>(0);
+    std::unique_ptr<QApplication> tempApp;
+    if (!QCoreApplication::instance()) {
+        tempApp = std::make_unique<QApplication>(*argc, argv.get());
+    }
+
+    QString str = val.toString();
+
+    static const QRegularExpression regex(
+      "(-?\\d+)"      // number (any sign)
+      "[x,\\.\\s]"    // separator ('x', ',', '.', or whitespace)
+      "(-?\\d+)"      // number (any sign)
+      "[\\+,\\.\\s]*" // separator ('+',',', '.', or whitespace)
+      "(-?\\d+)"      // number (non-negative)
+      "[\\+,\\.\\s]*" // separator ('+', ',', '.', or whitespace)
+      "(-?\\d+)"      // number (non-negative)
+    );
+
+    if (!regex.match(str).hasMatch()) {
+        return {};
+    }
+
+    int w, h, x, y;
+    bool w_ok, h_ok, x_ok, y_ok;
+    w = regex.match(str).captured(1).toInt(&w_ok);
+    h = regex.match(str).captured(2).toInt(&h_ok);
+    x = regex.match(str).captured(3).toInt(&x_ok);
+    y = regex.match(str).captured(4).toInt(&y_ok);
+
+    if (!(w_ok && h_ok && x_ok && y_ok)) {
+        return {};
+    }
+
+    return QRect(x, y, w, h).normalized();
 }

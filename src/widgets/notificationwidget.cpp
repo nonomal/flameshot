@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "notificationwidget.h"
+
 #include <QFrame>
 #include <QIcon>
 #include <QLabel>
@@ -30,7 +31,7 @@ NotificationWidget::NotificationWidget(QWidget* parent)
     connect(
       m_hideAnimation, &QPropertyAnimation::finished, m_label, &QLabel::hide);
 
-    auto mainLayout = new QVBoxLayout();
+    auto* mainLayout = new QVBoxLayout();
     setLayout(mainLayout);
 
     mainLayout->addWidget(m_content);

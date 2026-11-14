@@ -2,8 +2,6 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "capturecontext.h"
-#include "capturerequest.h"
-#include "controller.h"
 
 // TODO rename
 QPixmap CaptureContext::selectedScreenshotArea() const
@@ -13,14 +11,4 @@ QPixmap CaptureContext::selectedScreenshotArea() const
     } else {
         return screenshot.copy(selection);
     }
-}
-
-CaptureRequest* CaptureContext::request()
-{
-    return &*Controller::getInstance()->requests().find(requestId);
-}
-
-CaptureRequest* CaptureContext::request() const
-{
-    return &*Controller::getInstance()->requests().find(requestId);
 }

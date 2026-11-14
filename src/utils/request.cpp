@@ -6,6 +6,7 @@
  */
 
 #include "request.h"
+
 OrgFreedesktopPortalRequestInterface::OrgFreedesktopPortalRequestInterface(
   const QString& service,
   const QString& path,
@@ -18,4 +19,5 @@ OrgFreedesktopPortalRequestInterface::OrgFreedesktopPortalRequestInterface(
                            parent)
 {}
 
-OrgFreedesktopPortalRequestInterface::~OrgFreedesktopPortalRequestInterface() {}
+OrgFreedesktopPortalRequestInterface::~OrgFreedesktopPortalRequestInterface() =
+  default;

@@ -47,7 +47,7 @@ StartupWMClass=flameshot
 Actions=Configure;Capture;Launcher;
 X-DBUS-StartupType=Unique
 X-DBUS-ServiceName=org.flameshot.Flameshot
-X-KDE-DBUS-Restricted-Interfaces=org.kde.kwin.Screenshot
+X-KDE-DBUS-Restricted-Interfaces=org.kde.kwin.Screenshot,org.kde.KWin.ScreenShot2
 
 [Desktop Action Configure]
 Name=Configure
@@ -64,7 +64,7 @@ Name[uk]=Налаштувати
 Name[es]=Configurar
 Name[de]=Einstellungen
 Name[pt_BR]=Configurar
-Exec=flameshot config
+Exec=@LAUNCHER_EXECUTABLE@ config
 
 [Desktop Action Capture]
 Name=Take screenshot
@@ -81,7 +81,7 @@ Name[nl_NL]=Schermfoto maken
 Name[es]=Tomar captura de pantalla
 Name[de]=Bildschirmfoto aufnehmen
 Name[pt_BR]=Capturar tela
-Exec=flameshot gui --delay 500
+Exec=@LAUNCHER_EXECUTABLE@ gui
 
 [Desktop Action Launcher]
 Name=Open launcher
@@ -91,4 +91,4 @@ Name[nl_NL]=Starter openen
 Name[sk]=Otvoriť spúšťač
 Name[zh_CN]=打开启动器
 Name[pt_BR]=Abrir lançador
-Exec=flameshot launcher
+Exec=@LAUNCHER_EXECUTABLE@ launcher

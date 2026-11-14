@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "selectiontool.h"
+
 #include <QPainter>
 
 SelectionTool::SelectionTool(QObject* parent)
@@ -37,7 +38,7 @@ QString SelectionTool::description() const
 
 CaptureTool* SelectionTool::copy(QObject* parent)
 {
-    SelectionTool* tool = new SelectionTool(parent);
+    auto* tool = new SelectionTool(parent);
     copyParams(this, tool);
     return tool;
 }

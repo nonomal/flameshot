@@ -31,24 +31,27 @@ public:
 
     CaptureRequest(CaptureMode mode,
                    const uint delay = 0,
-                   const QVariant& data = QVariant(),
+                   QVariant data = QVariant(),
                    ExportTask tasks = NO_TASK);
 
     void setStaticID(uint id);
 
     uint id() const;
-    QByteArray serialize() const;
-    static CaptureRequest deserialize(const QByteArray& data);
     uint delay() const;
     QString path() const;
     QVariant data() const;
     CaptureMode captureMode() const;
     ExportTask tasks() const;
+    QRect initialSelection() const;
 
     void addTask(ExportTask task);
+    void removeTask(ExportTask task);
     void addSaveTask(const QString& path = QString());
     void addPinTask(const QRect& pinWindowGeometry);
-    void exportCapture(const QPixmap& capture);
+    void setInitialSelection(const QRect& selection);
+    void setSelectedMonitor(int monitorIndex);
+    int selectedMonitor() const;
+    bool hasSelectedMonitor() const;
 
 private:
     CaptureMode m_mode;
@@ -56,10 +59,9 @@ private:
     QString m_path;
     ExportTask m_tasks;
     QVariant m_data;
-    QRect m_pinWindowGeometry;
-
-    bool m_forcedID;
-    uint m_id;
+    QRect m_pinWindowGeometry, m_initialSelection;
+    int m_selectedMonitor;
+    bool m_hasSelectedMonitor;
 
     CaptureRequest() {}
 };

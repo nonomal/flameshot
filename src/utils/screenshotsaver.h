@@ -4,26 +4,16 @@
 #pragma once
 
 #include <QString>
+#include <QWidget>
 
 class QPixmap;
-class QWidget;
 
-class ScreenshotSaver
-{
-public:
-    ScreenshotSaver();
-    ScreenshotSaver(const unsigned id);
-
-    void saveToClipboard(const QPixmap& capture);
-    void saveToClipboardMime(const QPixmap& capture, const QString& imageType);
-    bool saveToFilesystem(const QPixmap& capture,
-                          const QString& path,
-                          const QString& messagePrefix = "");
-    bool saveToFilesystemGUI(const QPixmap& capture);
-
-private:
-    unsigned m_id;
-    QString ShowSaveFileDialog(QWidget* parent,
-                               const QString& title,
-                               const QString& directory);
-};
+bool saveToFilesystem(const QPixmap& capture,
+                      const QString& path,
+                      const QString& messagePrefix = "");
+QString ShowSaveFileDialog(const QString& title, const QString& directory);
+void saveToClipboardMime(const QPixmap& capture, const QString& imageType);
+void saveToClipboard(const QPixmap& capture);
+// GNOME Wayland: keeps the widget alive until clipboard data is fetched
+bool saveToClipboardGnomeWorkaround(const QPixmap& pixmap, QWidget* keepAlive);
+bool saveToFilesystemGUI(const QPixmap& capture);

@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "copytool.h"
-#include "src/utils/screenshotsaver.h"
+
 #include <QPainter>
 
 CopyTool::CopyTool(QObject* parent)
@@ -41,7 +41,8 @@ CaptureTool* CopyTool::copy(QObject* parent)
 
 void CopyTool::pressed(CaptureContext& context)
 {
-    context.request()->addTask(CaptureRequest::COPY);
+    emit requestAction(REQ_CLEAR_SELECTION);
+    context.request.addTask(CaptureRequest::COPY);
     emit requestAction(REQ_CAPTURE_DONE_OK);
     emit requestAction(REQ_CLOSE_GUI);
 }

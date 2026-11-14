@@ -2,11 +2,11 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "capturetoolbutton.h"
-#include "src/tools/capturetool.h"
-#include "src/tools/toolfactory.h"
-#include "src/utils/colorutils.h"
-#include "src/utils/confighandler.h"
-#include "src/utils/globalvalues.h"
+#include "tools/capturetool.h"
+#include "tools/toolfactory.h"
+#include "utils/confighandler.h"
+#include "utils/globalvalues.h"
+
 #include <QApplication>
 #include <QIcon>
 #include <QMouseEvent>
@@ -23,12 +23,7 @@ CaptureToolButton::CaptureToolButton(const CaptureTool::Type t, QWidget* parent)
   , m_emergeAnimation(nullptr)
 {
     initButton();
-    if (t == CaptureTool::TYPE_SELECTIONINDICATOR) {
-        QFont f = this->font();
-        setFont(QFont(f.family(), 7, QFont::Bold));
-    } else {
-        updateIcon();
-    }
+    updateIcon();
 }
 
 CaptureToolButton::~CaptureToolButton()
@@ -62,7 +57,8 @@ void CaptureToolButton::initButton()
     QString tooltip = m_tool->description();
     QString shortcut =
       ConfigHandler().shortcut(QVariant::fromValue(m_buttonType).toString());
-    if (m_buttonType == CaptureTool::TYPE_COPY) {
+    if (m_buttonType == CaptureTool::TYPE_COPY &&
+        ConfigHandler().copyOnDoubleClick()) {
         tooltip += QStringLiteral(" (%1Left Double-Click)")
                      .arg(shortcut.isEmpty() ? QString() : shortcut + " or ");
     } else if (!shortcut.isEmpty()) {
@@ -142,10 +138,12 @@ static std::map<CaptureTool::Type, int> buttonTypeOrder
       { CaptureTool::TYPE_MARKER, 6 }, { CaptureTool::TYPE_TEXT, 7 },
       { CaptureTool::TYPE_PIXELATE, 8 }, { CaptureTool::TYPE_INVERT, 9 },
       { CaptureTool::TYPE_CIRCLECOUNT, 10 },
-      { CaptureTool::TYPE_SELECTIONINDICATOR, 11 },
       { CaptureTool::TYPE_MOVESELECTION, 12 }, { CaptureTool::TYPE_UNDO, 13 },
       { CaptureTool::TYPE_REDO, 14 }, { CaptureTool::TYPE_COPY, 15 },
-      { CaptureTool::TYPE_SAVE, 16 }, { CaptureTool::TYPE_IMAGEUPLOADER, 17 },
+      { CaptureTool::TYPE_SAVE, 16 },
+#ifdef ENABLE_IMGUR
+      { CaptureTool::TYPE_IMAGEUPLOADER, 17 },
+#endif
       { CaptureTool::TYPE_ACCEPT, 18 },
 #if !defined(Q_OS_MACOS)
       { CaptureTool::TYPE_OPEN_APP, 19 }, { CaptureTool::TYPE_EXIT, 20 },
@@ -171,11 +169,13 @@ QList<CaptureTool::Type> CaptureToolButton::iterableButtonTypes = {
     CaptureTool::TYPE_RECTANGLE,     CaptureTool::TYPE_CIRCLE,
     CaptureTool::TYPE_MARKER,        CaptureTool::TYPE_TEXT,
     CaptureTool::TYPE_CIRCLECOUNT,   CaptureTool::TYPE_PIXELATE,
-    CaptureTool::TYPE_INVERT,        CaptureTool::TYPE_SELECTIONINDICATOR,
-    CaptureTool::TYPE_MOVESELECTION, CaptureTool::TYPE_UNDO,
-    CaptureTool::TYPE_REDO,          CaptureTool::TYPE_COPY,
-    CaptureTool::TYPE_SAVE,          CaptureTool::TYPE_EXIT,
+    CaptureTool::TYPE_INVERT,        CaptureTool::TYPE_MOVESELECTION,
+    CaptureTool::TYPE_UNDO,          CaptureTool::TYPE_REDO,
+    CaptureTool::TYPE_COPY,          CaptureTool::TYPE_SAVE,
+    CaptureTool::TYPE_EXIT,
+#ifdef ENABLE_IMGUR
     CaptureTool::TYPE_IMAGEUPLOADER,
+#endif
 #if !defined(Q_OS_MACOS)
     CaptureTool::TYPE_OPEN_APP,
 #endif

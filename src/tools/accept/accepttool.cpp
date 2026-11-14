@@ -2,12 +2,12 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "accepttool.h"
-#include "src/utils/screenshotsaver.h"
+
 #include <QApplication>
 #include <QPainter>
 #include <QStyle>
 #if defined(Q_OS_MACOS)
-#include "src/widgets/capture/capturewidget.h"
+#include "widgets/capture/capturewidget.h"
 #include <QWidget>
 #endif
 
@@ -49,10 +49,10 @@ CaptureTool* AcceptTool::copy(QObject* parent)
 void AcceptTool::pressed(CaptureContext& context)
 {
     emit requestAction(REQ_CAPTURE_DONE_OK);
-    if (context.request()->tasks() & CaptureRequest::PIN) {
+    if (context.request.tasks() & CaptureRequest::PIN) {
         QRect geometry = context.selection;
         geometry.moveTopLeft(geometry.topLeft() + context.widgetOffset);
-        context.request()->addPinTask(geometry);
+        context.request.addTask(CaptureRequest::PIN);
     }
     emit requestAction(REQ_CLOSE_GUI);
 }

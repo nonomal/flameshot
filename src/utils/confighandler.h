@@ -3,25 +3,35 @@
 
 #pragma once
 
-#include "src/widgets/capture/capturetoolbutton.h"
+#include "widgets/capture/capturetoolbutton.h"
+
 #include <QSettings>
 #include <QStringList>
 #include <QVariant>
 #include <QVector>
+
+#define CONFIG_GROUP_GENERAL "General"
+#define CONFIG_GROUP_SHORTCUTS "Shortcuts"
 
 class QFileSystemWatcher;
 class ValueHandler;
 template<class T>
 class QSharedPointer;
 class QTextStream;
+class AbstractLogger;
 
 /**
  * Declare and implement a getter for a config option. `KEY` is the option key
  * as it appears in the config file, `TYPE` is the C++ type. At the same time
  * `KEY` is the name of the generated getter function.
  */
+// clang-format off
 #define CONFIG_GETTER(KEY, TYPE)                                               \
-    TYPE KEY() { return value(QStringLiteral(#KEY)).value<TYPE>(); }
+    TYPE KEY()                                                                 \
+    {                                                                          \
+        return value(QStringLiteral(#KEY)).value<TYPE>();                      \
+    }
+// clang-format on
 
 /**
  * Declare and implement a setter for a config option. `FUNC` is the name of the
@@ -29,9 +39,14 @@ class QTextStream;
  * and `TYPE` is the C++ type.
  */
 #define CONFIG_SETTER(FUNC, KEY, TYPE)                                         \
-    void FUNC(const TYPE& value)                                               \
+    void FUNC(const TYPE& val)                                                 \
     {                                                                          \
-        setValue(QStringLiteral(#KEY), QVariant::fromValue(value));            \
+        QString key = QStringLiteral(#KEY);                                    \
+        /* Without this check, multiple `flameshot gui` instances running */   \
+        /* simultaneously would cause an endless loop of fileWatcher calls */  \
+        if (QVariant::fromValue(val) != value(key)) {                          \
+            setValue(key, QVariant::fromValue(val));                           \
+        }                                                                      \
     }
 
 /**
@@ -49,7 +64,7 @@ class ConfigHandler : public QObject
     Q_OBJECT
 
 public:
-    explicit ConfigHandler(bool skipInitialErrorCheck = false);
+    explicit ConfigHandler();
 
     static ConfigHandler* getInstance();
 
@@ -60,44 +75,91 @@ public:
     CONFIG_GETTER_SETTER(userColors, setUserColors, QVector<QColor>);
     CONFIG_GETTER_SETTER(savePath, setSavePath, QString)
     CONFIG_GETTER_SETTER(savePathFixed, setSavePathFixed, bool)
+    CONFIG_GETTER_SETTER(uiLanguage, setUiLanguage, QString)
     CONFIG_GETTER_SETTER(uiColor, setUiColor, QColor)
     CONFIG_GETTER_SETTER(contrastUiColor, setContrastUiColor, QColor)
     CONFIG_GETTER_SETTER(drawColor, setDrawColor, QColor)
+    CONFIG_GETTER_SETTER(predefinedColorPaletteLarge,
+                         setPredefinedColorPaletteLarge,
+                         bool)
     CONFIG_GETTER_SETTER(fontFamily, setFontFamily, QString)
     CONFIG_GETTER_SETTER(showHelp, setShowHelp, bool)
     CONFIG_GETTER_SETTER(showSidePanelButton, setShowSidePanelButton, bool)
     CONFIG_GETTER_SETTER(showDesktopNotification,
                          setShowDesktopNotification,
                          bool)
+    CONFIG_GETTER_SETTER(showAbortNotification, setShowAbortNotification, bool)
     CONFIG_GETTER_SETTER(filenamePattern, setFilenamePattern, QString)
     CONFIG_GETTER_SETTER(disabledTrayIcon, setDisabledTrayIcon, bool)
     CONFIG_GETTER_SETTER(drawThickness, setDrawThickness, int)
     CONFIG_GETTER_SETTER(drawFontSize, setDrawFontSize, int)
+    CONFIG_GETTER_SETTER(drawCircleCounterSize, setDrawCircleCounterSize, int)
+    CONFIG_GETTER_SETTER(drawCircleCounterOutline,
+                         setDrawCircleCounterOutline,
+                         bool)
+    CONFIG_GETTER_SETTER(drawPixelateSize, setDrawPixelateSize, int)
+    CONFIG_GETTER_SETTER(drawRectangleSize, setDrawRectangleSize, int)
+    CONFIG_GETTER_SETTER(drawMarkerSize, setDrawMarkerSize, int)
     CONFIG_GETTER_SETTER(keepOpenAppLauncher, setKeepOpenAppLauncher, bool)
+#if !defined(DISABLE_UPDATE_CHECKER)
     CONFIG_GETTER_SETTER(checkForUpdates, setCheckForUpdates, bool)
+#endif
+    CONFIG_GETTER_SETTER(allowMultipleGuiInstances,
+                         setAllowMultipleGuiInstances,
+                         bool)
+    CONFIG_GETTER_SETTER(autoCloseIdleDaemon, setAutoCloseIdleDaemon, bool)
     CONFIG_GETTER_SETTER(showStartupLaunchMessage,
                          setShowStartupLaunchMessage,
                          bool)
+    CONFIG_GETTER_SETTER(showQuitPrompt, setShowQuitPrompt, bool)
     CONFIG_GETTER_SETTER(contrastOpacity, setContrastOpacity, int)
-    CONFIG_GETTER_SETTER(copyAndCloseAfterUpload,
-                         setCopyAndCloseAfterUpload,
-                         bool)
+    CONFIG_GETTER_SETTER(copyURLAfterUpload, setCopyURLAfterUpload, bool)
     CONFIG_GETTER_SETTER(historyConfirmationToDelete,
                          setHistoryConfirmationToDelete,
                          bool)
     CONFIG_GETTER_SETTER(uploadHistoryMax, setUploadHistoryMax, int)
     CONFIG_GETTER_SETTER(saveAfterCopy, setSaveAfterCopy, bool)
     CONFIG_GETTER_SETTER(copyPathAfterSave, setCopyPathAfterSave, bool)
-    CONFIG_GETTER_SETTER(setSaveAsFileExtension,
-                         setSaveAsFileExtension,
-                         QString)
+    CONFIG_GETTER_SETTER(saveAsFileExtension, setSaveAsFileExtension, QString)
     CONFIG_GETTER_SETTER(antialiasingPinZoom, setAntialiasingPinZoom, bool)
     CONFIG_GETTER_SETTER(useJpgForClipboard, setUseJpgForClipboard, bool)
+#if defined(Q_OS_MACOS)
+    CONFIG_GETTER_SETTER(useNativeFullscreen, setUseNativeFullscreen, bool)
+#endif
+    CONFIG_GETTER_SETTER(uploadWithoutConfirmation,
+                         setUploadWithoutConfirmation,
+                         bool)
     CONFIG_GETTER_SETTER(ignoreUpdateToVersion,
                          setIgnoreUpdateToVersion,
                          QString)
     CONFIG_GETTER_SETTER(undoLimit, setUndoLimit, int)
     CONFIG_GETTER_SETTER(buttons, setButtons, QList<CaptureTool::Type>)
+    CONFIG_GETTER_SETTER(showMagnifier, setShowMagnifier, bool)
+    CONFIG_GETTER_SETTER(squareMagnifier, setSquareMagnifier, bool)
+    CONFIG_GETTER_SETTER(copyOnDoubleClick, setCopyOnDoubleClick, bool)
+    CONFIG_GETTER_SETTER(uploadClientSecret, setUploadClientSecret, QString)
+    CONFIG_GETTER_SETTER(saveLastRegion, setSaveLastRegion, bool)
+    CONFIG_GETTER_SETTER(showSelectionGeometry, setShowSelectionGeometry, int)
+    CONFIG_GETTER_SETTER(jpegQuality, setJpegQuality, int)
+    CONFIG_GETTER_SETTER(reverseArrow, setReverseArrow, bool)
+    CONFIG_GETTER_SETTER(arrowStyle, setArrowStyle, int)
+    CONFIG_GETTER_SETTER(insecurePixelate, setInsecurePixelate, bool)
+    CONFIG_GETTER_SETTER(showSelectionGeometryHideTime,
+                         showSelectionGeometryHideTime,
+                         int)
+#if defined(Q_OS_WIN)
+    CONFIG_GETTER_SETTER(ignorePrntScrForcesSnipping,
+                         setIgnorePrntScrForcesSnipping,
+                         bool)
+#endif
+#if !defined(Q_OS_MACOS)
+    CONFIG_GETTER_SETTER(captureActiveMonitor, setCaptureActiveMonitor, bool)
+#endif
+#if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)
+    CONFIG_GETTER_SETTER(useX11LegacyScreenshot,
+                         setUseX11LegacyScreenshot,
+                         bool)
+#endif
 
     // SPECIAL CASES
     bool startupLaunch();
@@ -116,6 +178,8 @@ public:
     QString shortcut(const QString& actionName);
     void setValue(const QString& key, const QVariant& value);
     QVariant value(const QString& key) const;
+    void remove(const QString& key);
+    void resetValue(const QString& key);
 
     // INFO
     static QSet<QString>& recognizedGeneralOptions();
@@ -123,10 +187,12 @@ public:
     QSet<QString> keysFromGroup(const QString& group) const;
 
     // ERROR HANDLING
-    bool checkForErrors(QTextStream* log = nullptr) const;
-    bool checkUnrecognizedSettings(QTextStream* log = nullptr) const;
-    bool checkShortcutConflicts(QTextStream* log = nullptr) const;
-    bool checkSemantics(QTextStream* log = nullptr) const;
+    bool checkForErrors(AbstractLogger* log = nullptr) const;
+    bool checkUnrecognizedSettings(AbstractLogger* log = nullptr,
+                                   QList<QString>* offenders = nullptr) const;
+    bool checkShortcutConflicts(AbstractLogger* log = nullptr) const;
+    bool checkSemantics(AbstractLogger* log = nullptr,
+                        QList<QString>* offenders = nullptr) const;
     void checkAndHandleError() const;
     void setErrorState(bool error) const;
     bool hasError() const;
@@ -147,5 +213,6 @@ private:
     QSharedPointer<ValueHandler> valueHandler(const QString& key) const;
     void assertKeyRecognized(const QString& key) const;
     bool isShortcut(const QString& key) const;
-    QString baseName(QString key) const;
+    QString baseName(const QString& key) const;
+    void cleanUnusedKeys(const QString& group, const QSet<QString>& keys) const;
 };

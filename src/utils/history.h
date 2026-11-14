@@ -1,5 +1,4 @@
-#ifndef HISTORY_H
-#define HISTORY_H
+#pragma once
 
 #define HISTORYPIXMAP_MAX_PREVIEW_WIDTH 250
 #define HISTORYPIXMAP_MAX_PREVIEW_HEIGHT 100
@@ -8,7 +7,7 @@
 #include <QPixmap>
 #include <QString>
 
-struct HISTORY_FILE_NAME
+struct HistoryFileName
 {
     QString file;
     QString token;
@@ -24,7 +23,7 @@ public:
     const QList<QString>& history();
     const QString& path();
 
-    const HISTORY_FILE_NAME& unpackFileName(const QString&);
+    const HistoryFileName& unpackFileName(const QString&);
     const QString& packFileName(const QString&, const QString&, const QString&);
 
 private:
@@ -33,7 +32,5 @@ private:
 
     // temporary variables
     QString m_packedFileName;
-    HISTORY_FILE_NAME m_unpackedFileName;
+    HistoryFileName m_unpackedFileName;
 };
-
-#endif // HISTORY_H

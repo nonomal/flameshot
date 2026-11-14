@@ -3,7 +3,8 @@
 
 #pragma once
 
-#include "color_wheel.hpp"
+#include "QtColorWidgets/color_wheel.hpp"
+#include <QSpinBox>
 #include <QWidget>
 
 class QVBoxLayout;
@@ -13,8 +14,10 @@ class QLineEdit;
 class ColorGrabWidget;
 class QColorPickingEventFilter;
 class QSlider;
+class QCheckBox;
 
 constexpr int maxToolSize = 50;
+constexpr int minSliderWidth = 100;
 
 class SidePanelWidget : public QWidget
 {
@@ -26,36 +29,43 @@ public:
     explicit SidePanelWidget(QPixmap* p, QWidget* parent = nullptr);
 
 signals:
-    void colorChanged(const QColor& c);
-    void toolSizeChanged(int t);
+    void colorChanged(const QColor& color);
+    void toolSizeChanged(int size);
     void togglePanel();
+    void showPanel();
+    void hidePanel();
+    void displayGridChanged(bool display);
+    void gridSizeChanged(int size);
 
 public slots:
-    void onToolSizeChanged(const int& t);
-    void onColorChanged(const QColor& c);
+    void onToolSizeChanged(int tool);
+    void onColorChanged(const QColor& color);
+    void startColorGrab();
 
 private slots:
-    void startColorGrab();
     void onColorGrabFinished();
     void onColorGrabAborted();
     void onTemporaryColorUpdated(const QColor& color);
 
 private:
     void finalizeGrab();
-    void updateColorNoWheel(const QColor& c);
+    void updateColorNoWheel(const QColor& color);
 
     bool eventFilter(QObject* obj, QEvent* event) override;
     void hideEvent(QHideEvent* event) override;
 
     QVBoxLayout* m_layout;
     QPushButton* m_colorGrabButton;
-    ColorGrabWidget* m_colorGrabber;
+    ColorGrabWidget* m_colorGrabber{};
     color_widgets::ColorWheel* m_colorWheel;
     QLabel* m_colorLabel;
     QLineEdit* m_colorHex;
     QPixmap* m_pixmap;
     QColor m_color;
     QColor m_revertColor;
+    QSpinBox* m_toolSizeSpin;
     QSlider* m_toolSizeSlider;
-    int m_toolSize;
+    int m_toolSize{};
+    QCheckBox* m_gridCheck{ nullptr };
+    QSpinBox* m_gridSizeSpin{ nullptr };
 };

@@ -2,197 +2,263 @@
 // SPDX-FileCopyrightText: 2017-2018 Alejandro Sirgo Rica & Contributors
 
 #include "capturelauncher.h"
-#include "src/core/controller.h"
-#include "src/utils/screengrabber.h"
-#include "src/utils/screenshotsaver.h"
-#include "src/widgets/imagelabel.h"
-#include <QComboBox>
-#include <QDrag>
-#include <QFormLayout>
-#include <QGridLayout>
-#include <QLabel>
+#include "./ui_capturelauncher.h"
+#include "config/cacheutils.h"
+#include "core/flameshot.h"
+#include "core/qguiappcurrentscreen.h"
+#include "utils/globalvalues.h"
+#include "utils/screenshotsaver.h"
+
+#include <QGuiApplication>
 #include <QMimeData>
-#include <QPushButton>
-#include <QSpinBox>
+#include <QScreen>
 
 // https://github.com/KDE/spectacle/blob/941c1a517be82bed25d1254ebd735c29b0d2951c/src/Gui/KSWidget.cpp
 // https://github.com/KDE/spectacle/blob/941c1a517be82bed25d1254ebd735c29b0d2951c/src/Gui/KSMainWindow.cpp
 
 CaptureLauncher::CaptureLauncher(QDialog* parent)
   : QDialog(parent)
-  , m_id(0)
+  , ui(new Ui::CaptureLauncher)
+  , m_countdownTimer(new QTimer(this))
+  , m_remainingSeconds(0)
 {
+    qApp->installEventFilter(this); // see eventFilter()
+    ui->setupUi(this);
     setAttribute(Qt::WA_DeleteOnClose);
-    setWindowIcon(QIcon(":img/app/flameshot.svg"));
-    m_imageLabel = new ImageLabel(this);
+    setWindowIcon(QIcon(GlobalValues::iconPath()));
     bool ok;
-    m_imageLabel->setScreenshot(ScreenGrabber().grabEntireDesktop(ok));
-    if (!ok) {
-    }
-    m_imageLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    connect(m_imageLabel,
-            &ImageLabel::dragInitiated,
-            this,
-            &CaptureLauncher::startDrag);
 
-    QGridLayout* layout = new QGridLayout(this);
-    layout->addWidget(m_imageLabel, 0, 0);
-
-    m_CaptureModeLabel = new QLabel(tr("<b>Capture Mode</b>"));
-
-    m_captureType = new QComboBox();
-    m_captureType->setMinimumWidth(240);
-    // TODO remember number
-    m_captureType->insertItem(
+    ui->captureType->insertItem(
       1, tr("Rectangular Region"), CaptureRequest::GRAPHICAL_MODE);
 
 #if defined(Q_OS_MACOS)
     // Following to MacOS philosophy (one application cannot be displayed on
     // more than one display)
-    m_captureType->insertItem(
+    ui->captureType->insertItem(
       2, tr("Full Screen (Current Display)"), CaptureRequest::FULLSCREEN_MODE);
 #else
-    m_captureType->insertItem(
-      2, tr("Full Screen (All Monitors)"), CaptureRequest::FULLSCREEN_MODE);
+    ui->captureType->insertItem(
+      2, tr("Full Screen"), CaptureRequest::FULLSCREEN_MODE);
+    const QList<QScreen*> screens = QGuiApplication::screens();
+    for (int i = 0; i < screens.size(); ++i) {
+        QScreen* screen = screens[i];
+        QRect geom = screen->geometry();
+        QString monitorText = tr("Monitor %1: %2 (%3x%4)")
+                                .arg(i + 1)
+                                .arg(screen->name())
+                                .arg(geom.width())
+                                .arg(geom.height());
+        ui->monitorSelection->addItem(monitorText, i);
+    }
+    // Select current screen by default
+    QScreen* currentScreen = QGuiAppCurrentScreen().currentScreen();
+    int currentIndex = screens.indexOf(currentScreen);
+    if (currentIndex >= 0) {
+        ui->monitorSelection->setCurrentIndex(currentIndex);
+    }
 #endif
-    // m_captureType->insertItem(3, tr("Single Screen"),
-    // CaptureRequest::SCREEN_MODE);
 
-    m_delaySpinBox = new QSpinBox();
-    m_delaySpinBox->setSingleStep(1.0);
-    m_delaySpinBox->setMinimum(0.0);
-    m_delaySpinBox->setMaximum(999.0);
-    m_delaySpinBox->setSpecialValueText(tr("No Delay"));
-    m_delaySpinBox->setMinimumWidth(160);
-    // with QT 5.7 qOverload<int>(&QSpinBox::valueChanged),
-    connect(m_delaySpinBox,
+#ifdef Q_OS_MACOS
+    ui->monitorLabel->setVisible(false);
+    ui->monitorSelection->setVisible(false);
+#else
+    if (screens.size() <= 1) {
+        ui->monitorLabel->setVisible(false);
+        ui->monitorSelection->setVisible(false);
+    }
+#endif
+
+    ui->delayTime->setSpecialValueText(tr("No Delay"));
+    ui->launchButton->setFocus();
+
+    ui->countdownLabel->setVisible(false);
+    ui->countdownLabel->setStyleSheet(
+      "QLabel { font-size: 24px; font-weight: bold;}");
+    ui->countdownLabel->setAlignment(Qt::AlignCenter);
+
+    // Connect countdown timer
+    connect(m_countdownTimer,
+            &QTimer::timeout,
+            this,
+            &CaptureLauncher::updateCountdown);
+
+    // Function to add or remove plural to seconds
+    connect(ui->delayTime,
             static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
             this,
             [this](int val) {
-                QString sufix = val == 1 ? tr(" second") : tr(" seconds");
-                this->m_delaySpinBox->setSuffix(sufix);
+                QString suffix = val == 1 ? tr(" second") : tr(" seconds");
+                this->ui->delayTime->setSuffix(suffix);
             });
 
-    m_launchButton = new QPushButton(tr("Take new screenshot"));
-    m_launchButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    connect(m_launchButton,
+    connect(ui->launchButton,
             &QPushButton::clicked,
             this,
             &CaptureLauncher::startCapture);
-    m_launchButton->setFocus();
 
-    QFormLayout* captureModeForm = new QFormLayout;
-    captureModeForm->addRow(tr("Area:"), m_captureType);
-    captureModeForm->addRow(tr("Delay:"), m_delaySpinBox);
-    captureModeForm->setContentsMargins(24, 0, 0, 0);
+    connect(ui->captureType,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this,
+            [this]() {
+                auto mode = static_cast<CaptureRequest::CaptureMode>(
+                  ui->captureType->currentData().toInt());
+                if (mode == CaptureRequest::CaptureMode::GRAPHICAL_MODE) {
+                    ui->sizeLabel->show();
+                    ui->screenshotX->show();
+                    ui->screenshotY->show();
+                    ui->screenshotWidth->show();
+                    ui->screenshotHeight->show();
+                } else {
+                    ui->sizeLabel->hide();
+                    ui->screenshotX->hide();
+                    ui->screenshotY->hide();
+                    ui->screenshotWidth->hide();
+                    ui->screenshotHeight->hide();
+                }
+            });
 
-    m_mainLayout = new QVBoxLayout();
-    m_mainLayout->addStretch(1);
-    m_mainLayout->addWidget(m_CaptureModeLabel);
-    m_mainLayout->addLayout(captureModeForm);
-    m_mainLayout->addStretch(10);
-    m_mainLayout->addWidget(m_launchButton, 1, Qt::AlignCenter);
-    m_mainLayout->setContentsMargins(10, 0, 0, 10);
-    layout->addLayout(m_mainLayout, 0, 1);
-    layout->setColumnMinimumWidth(0, 320);
-    layout->setColumnMinimumWidth(1, 320);
+    loadLastRegion();
+    // Keep the region inputs in sync with the last accepted selection, also
+    // for captures started outside the launcher (tray icon, `flameshot gui`)
+    connect(Flameshot::instance(),
+            &Flameshot::captureTaken,
+            this,
+            &CaptureLauncher::loadLastRegion);
+
+    ui->screenshotWidth->setMaximumWidth(70);
+    ui->screenshotHeight->setMaximumWidth(70);
+    ui->screenshotX->setMaximumWidth(70);
+    ui->screenshotY->setMaximumWidth(70);
+    adjustSize();
+    show();
+    // Call show() first, otherwise the correct geometry cannot be fetched
+    // for centering the window on the screen
+    QRect position = frameGeometry();
+    QScreen* screen = QGuiAppCurrentScreen().currentScreen();
+    position.moveCenter(screen->availableGeometry().center());
+    move(position.topLeft());
 }
 
 // HACK:
 // https://github.com/KDE/spectacle/blob/fa1e780b8bf3df3ac36c410b9ece4ace041f401b/src/Gui/KSMainWindow.cpp#L70
 void CaptureLauncher::startCapture()
 {
-    m_launchButton->setEnabled(false);
-    hide();
+    ui->launchButton->setEnabled(false);
+
+    int delaySeconds = ui->delayTime->value();
+
+    if (delaySeconds > 0) {
+        m_remainingSeconds = delaySeconds;
+        ui->countdownLabel->setVisible(true);
+        ui->countdownLabel->setText(QString::number(m_remainingSeconds));
+        m_countdownTimer->start(1000);
+    } else {
+        hide();
+    }
+
+    auto const additionalDelayToHideUI = 600;
+    auto const secondsToMilliseconds = 1000;
     auto mode = static_cast<CaptureRequest::CaptureMode>(
-      m_captureType->currentData().toInt());
-    CaptureRequest req(mode, 600 + m_delaySpinBox->value() * 1000);
-    m_id = req.id();
+      ui->captureType->currentData().toInt());
+    CaptureRequest req(
+      mode, additionalDelayToHideUI + delaySeconds * secondsToMilliseconds);
+
+    if (mode == CaptureRequest::CaptureMode::GRAPHICAL_MODE) {
+        req.setInitialSelection(QRect(ui->screenshotX->text().toInt(),
+                                      ui->screenshotY->text().toInt(),
+                                      ui->screenshotWidth->text().toInt(),
+                                      ui->screenshotHeight->text().toInt()));
+    }
+
+#ifndef Q_OS_MACOS
+    int selectedMonitor = ui->monitorSelection->currentData().toInt();
+    req.setSelectedMonitor(selectedMonitor);
+#else
+    req.setSelectedMonitor(-1);
+#endif
+
     connectCaptureSlots();
-    Controller::getInstance()->requestCapture(req);
+    Flameshot::instance()->requestCapture(req);
 }
 
-void CaptureLauncher::startDrag()
+void CaptureLauncher::loadLastRegion()
 {
-    QDrag* dragHandler = new QDrag(this);
-    QMimeData* mimeData = new QMimeData;
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
-    mimeData->setImageData(m_imageLabel->pixmap(Qt::ReturnByValue));
-#else
-    mimeData->setImageData(m_imageLabel->pixmap());
-#endif
-    dragHandler->setMimeData(mimeData);
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
-    dragHandler->setPixmap(
-      m_imageLabel->pixmap(Qt::ReturnByValue)
-        .scaled(
-          256, 256, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
-    dragHandler->exec();
-#else
-    dragHandler->setPixmap(m_imageLabel->pixmap()->scaled(
-      256, 256, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
-    dragHandler->exec();
-#endif
+    auto lastRegion = getLastRegion();
+    ui->screenshotX->setText(QString::number(lastRegion.x()));
+    ui->screenshotY->setText(QString::number(lastRegion.y()));
+    ui->screenshotWidth->setText(QString::number(lastRegion.width()));
+    ui->screenshotHeight->setText(QString::number(lastRegion.height()));
 }
 
-void CaptureLauncher::connectCaptureSlots()
+void CaptureLauncher::connectCaptureSlots() const
 {
-    connect(Controller::getInstance(),
-            &Controller::captureTaken,
+    connect(Flameshot::instance(),
+            &Flameshot::captureTaken,
             this,
-            &CaptureLauncher::captureTaken);
-    connect(Controller::getInstance(),
-            &Controller::captureFailed,
+            &CaptureLauncher::onCaptureTaken);
+    connect(Flameshot::instance(),
+            &Flameshot::captureFailed,
             this,
-            &CaptureLauncher::captureFailed);
+            &CaptureLauncher::onCaptureFailed);
 }
 
-void CaptureLauncher::disconnectCaptureSlots()
+void CaptureLauncher::disconnectCaptureSlots() const
 {
     // Hack for MacOS
     // for some strange reasons MacOS sends multiple "captureTaken" signals
     // (random number, usually from 1 up to 20).
-    // So no it enables signal on "Capture new screenshot" button and disables
+    // So now it enables signal on "Capture new screenshot" button and disables
     // on first success of fail.
-    disconnect(Controller::getInstance(),
-               &Controller::captureTaken,
+    disconnect(Flameshot::instance(),
+               &Flameshot::captureTaken,
                this,
-               &CaptureLauncher::captureTaken);
-    disconnect(Controller::getInstance(),
-               &Controller::captureFailed,
+               &CaptureLauncher::onCaptureTaken);
+    disconnect(Flameshot::instance(),
+               &Flameshot::captureFailed,
                this,
-               &CaptureLauncher::captureFailed);
+               &CaptureLauncher::onCaptureFailed);
 }
 
-void CaptureLauncher::captureTaken(uint id, QPixmap p, const QRect& selection)
+void CaptureLauncher::onCaptureTaken(QPixmap const& screenshot)
 {
     // MacOS specific, more details in the function disconnectCaptureSlots()
     disconnectCaptureSlots();
-
-    if (id == m_id) {
-        m_id = 0;
-        m_imageLabel->setScreenshot(p);
-        show();
-    }
+    m_countdownTimer->stop();
+    ui->countdownLabel->setVisible(false);
 
     auto mode = static_cast<CaptureRequest::CaptureMode>(
-      m_captureType->currentData().toInt());
+      ui->captureType->currentData().toInt());
 
     if (mode == CaptureRequest::FULLSCREEN_MODE) {
-        ScreenshotSaver().saveToFilesystemGUI(p);
+        saveToFilesystemGUI(screenshot);
     }
-    m_launchButton->setEnabled(true);
+    ui->launchButton->setEnabled(true);
 }
 
-void CaptureLauncher::captureFailed(uint id)
+void CaptureLauncher::onCaptureFailed()
 {
     // MacOS specific, more details in the function disconnectCaptureSlots()
     disconnectCaptureSlots();
+    m_countdownTimer->stop();
+    ui->countdownLabel->setVisible(false);
+    show();
+    ui->launchButton->setEnabled(true);
+}
 
-    if (id == m_id) {
-        m_id = 0;
-        show();
+void CaptureLauncher::updateCountdown()
+{
+    m_remainingSeconds--;
+
+    if (m_remainingSeconds > 0) {
+        ui->countdownLabel->setText(QString::number(m_remainingSeconds));
+    } else {
+        m_countdownTimer->stop();
+        ui->countdownLabel->setVisible(false);
+        hide();
     }
-    m_launchButton->setEnabled(true);
+}
+
+CaptureLauncher::~CaptureLauncher()
+{
+    delete ui;
 }

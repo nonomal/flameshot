@@ -2,9 +2,10 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "filenameeditor.h"
-#include "src/config/strftimechooserwidget.h"
-#include "src/utils/confighandler.h"
-#include "src/utils/filenamehandler.h"
+#include "config/strftimechooserwidget.h"
+#include "utils/confighandler.h"
+#include "utils/filenamehandler.h"
+
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -21,7 +22,7 @@ FileNameEditor::FileNameEditor(QWidget* parent)
 void FileNameEditor::initLayout()
 {
     m_layout = new QVBoxLayout(this);
-    auto infoLabel = new QLabel(tr("Edit the name of your captures:"), this);
+    auto* infoLabel = new QLabel(tr("Edit the name of your captures:"), this);
     infoLabel->setFixedHeight(20);
     m_layout->addWidget(infoLabel);
     m_layout->addWidget(m_helperButtons);
@@ -30,7 +31,7 @@ void FileNameEditor::initLayout()
     m_layout->addWidget(new QLabel(tr("Preview:")));
     m_layout->addWidget(m_outputLabel);
 
-    QHBoxLayout* horizLayout = new QHBoxLayout();
+    auto* horizLayout = new QHBoxLayout();
     horizLayout->addWidget(m_saveButton);
     horizLayout->addWidget(m_resetButton);
     horizLayout->addWidget(m_clearButton);
@@ -106,7 +107,7 @@ void FileNameEditor::resetName()
     m_nameEditor->setText(ConfigHandler().filenamePattern());
 }
 
-void FileNameEditor::addToNameEditor(QString s)
+void FileNameEditor::addToNameEditor(const QString& s)
 {
     m_nameEditor->setText(m_nameEditor->text() + s);
     m_nameEditor->setFocus();

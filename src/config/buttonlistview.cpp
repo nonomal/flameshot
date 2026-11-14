@@ -2,8 +2,9 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "buttonlistview.h"
-#include "src/tools/toolfactory.h"
-#include "src/utils/confighandler.h"
+#include "tools/toolfactory.h"
+#include "utils/confighandler.h"
+
 #include <QListWidgetItem>
 #include <algorithm>
 
@@ -30,7 +31,7 @@ void ButtonListView::initButtonList()
         m_buttonTypeByName.insert(tool->name(), t);
 
         // init the menu option
-        QListWidgetItem* m_buttonItem = new QListWidgetItem(this);
+        auto* m_buttonItem = new QListWidgetItem(this);
 
         // when the background is lighter than gray, it uses the white icons
         QColor bgColor = this->palette().color(QWidget::backgroundRole());
@@ -51,13 +52,14 @@ void ButtonListView::updateActiveButtons(QListWidgetItem* item)
 {
     CaptureTool::Type bType = m_buttonTypeByName[item->text()];
     if (item->checkState() == Qt::Checked) {
-        m_listButtons.append(bType);
-        // TODO refactor so we don't need external sorts
+        // Refactored to avoid external sort: insert into the correct position
         using bt = CaptureTool::Type;
-        std::sort(m_listButtons.begin(), m_listButtons.end(), [](bt a, bt b) {
-            return CaptureToolButton::getPriorityByButton(a) <
-                   CaptureToolButton::getPriorityByButton(b);
-        });
+        auto it = std::lower_bound(
+          m_listButtons.begin(), m_listButtons.end(), bType, [](bt a, bt b) {
+              return CaptureToolButton::getPriorityByButton(a) <
+                     CaptureToolButton::getPriorityByButton(b);
+          });
+        m_listButtons.insert(it, bType);
     } else {
         m_listButtons.removeOne(bType);
     }

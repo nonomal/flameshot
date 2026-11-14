@@ -2,9 +2,10 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "textconfig.h"
-#include "src/utils/colorutils.h"
-#include "src/utils/confighandler.h"
-#include "src/utils/pathinfo.h"
+#include "utils/colorutils.h"
+#include "utils/confighandler.h"
+#include "utils/pathinfo.h"
+
 #include <QComboBox>
 #include <QFontDatabase>
 #include <QHBoxLayout>
@@ -12,8 +13,8 @@
 
 TextConfig::TextConfig(QWidget* parent)
   : QWidget(parent)
-  , m_layout(nullptr)
-  , m_fontsCB(nullptr)
+  , m_layout(new QVBoxLayout(this))
+  , m_fontsCB(new QComboBox())
   , m_strikeOutButton(nullptr)
   , m_underlineButton(nullptr)
   , m_weightButton(nullptr)
@@ -22,15 +23,12 @@ TextConfig::TextConfig(QWidget* parent)
   , m_centerAlignButton(nullptr)
   , m_rightAlignButton(nullptr)
 {
-    m_layout = new QVBoxLayout(this);
 
-    QFontDatabase fontDB;
-    m_fontsCB = new QComboBox();
     connect(m_fontsCB,
             &QComboBox::currentTextChanged,
             this,
             &TextConfig::fontFamilyChanged);
-    m_fontsCB->addItems(fontDB.families());
+    m_fontsCB->addItems(QFontDatabase::families());
     setFontFamily(ConfigHandler().fontFamily());
 
     QString iconPrefix = ColorUtils::colorIsDark(palette().windowText().color())
@@ -72,14 +70,14 @@ TextConfig::TextConfig(QWidget* parent)
             this,
             &TextConfig::fontItalicChanged);
     m_italicButton->setToolTip(tr("Italic"));
-    QHBoxLayout* modifiersLayout = new QHBoxLayout();
+    auto* modifiersLayout = new QHBoxLayout();
 
     m_leftAlignButton =
       new QPushButton(QIcon(iconPrefix + "leftalign.svg"), QLatin1String(""));
     m_leftAlignButton->setCheckable(true);
     m_leftAlignButton->setAutoExclusive(true);
     connect(m_leftAlignButton, &QPushButton::clicked, this, [this] {
-        alignmentChanged(Qt::AlignLeft);
+        emit alignmentChanged(Qt::AlignLeft);
     });
     m_leftAlignButton->setToolTip(tr("Left Align"));
 
@@ -88,7 +86,7 @@ TextConfig::TextConfig(QWidget* parent)
     m_centerAlignButton->setCheckable(true);
     m_centerAlignButton->setAutoExclusive(true);
     connect(m_centerAlignButton, &QPushButton::clicked, this, [this] {
-        alignmentChanged(Qt::AlignCenter);
+        emit alignmentChanged(Qt::AlignCenter);
     });
     m_centerAlignButton->setToolTip(tr("Center Align"));
 
@@ -97,11 +95,11 @@ TextConfig::TextConfig(QWidget* parent)
     m_rightAlignButton->setCheckable(true);
     m_rightAlignButton->setAutoExclusive(true);
     connect(m_rightAlignButton, &QPushButton::clicked, this, [this] {
-        alignmentChanged(Qt::AlignRight);
+        emit alignmentChanged(Qt::AlignRight);
     });
     m_rightAlignButton->setToolTip(tr("Right Align"));
 
-    QHBoxLayout* alignmentLayout = new QHBoxLayout();
+    auto* alignmentLayout = new QHBoxLayout();
     alignmentLayout->addWidget(m_leftAlignButton);
     alignmentLayout->addWidget(m_centerAlignButton);
     alignmentLayout->addWidget(m_rightAlignButton);
@@ -121,29 +119,30 @@ void TextConfig::setFontFamily(const QString& fontFamily)
       m_fontsCB->findText(fontFamily.isEmpty() ? font().family() : fontFamily));
 }
 
-void TextConfig::setUnderline(const bool u)
+void TextConfig::setUnderline(const bool underline)
 {
-    m_underlineButton->setChecked(u);
+    m_underlineButton->setChecked(underline);
 }
 
-void TextConfig::setStrikeOut(const bool s)
+void TextConfig::setStrikeOut(const bool strikeout)
 {
-    m_strikeOutButton->setChecked(s);
+    m_strikeOutButton->setChecked(strikeout);
 }
 
-void TextConfig::setWeight(const int w)
+void TextConfig::setWeight(const int weight)
 {
-    m_weightButton->setChecked(static_cast<QFont::Weight>(w) == QFont::Bold);
+    m_weightButton->setChecked(static_cast<QFont::Weight>(weight) ==
+                               QFont::Bold);
 }
 
-void TextConfig::setItalic(const bool i)
+void TextConfig::setItalic(const bool italic)
 {
-    m_italicButton->setChecked(i);
+    m_italicButton->setChecked(italic);
 }
 
-void TextConfig::weightButtonPressed(const bool w)
+void TextConfig::weightButtonPressed(const bool weight)
 {
-    if (w) {
+    if (weight) {
         emit fontWeightChanged(QFont::Bold);
     } else {
         emit fontWeightChanged(QFont::Normal);

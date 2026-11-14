@@ -19,6 +19,17 @@ void CaptureToolObjects::append(const QPointer<CaptureTool>& captureTool)
     }
 }
 
+void CaptureToolObjects::insert(int index,
+                                const QPointer<CaptureTool>& captureTool)
+{
+    if (!captureTool.isNull() && index >= 0 &&
+        index <= m_captureToolObjects.size()) {
+        m_captureToolObjects.insert(index,
+                                    captureTool->copy(captureTool->parent()));
+        m_imageCache.clear();
+    }
+}
+
 QPointer<CaptureTool> CaptureToolObjects::at(int index)
 {
     if (index >= 0 && index < m_captureToolObjects.size()) {
@@ -50,7 +61,7 @@ void CaptureToolObjects::removeAt(int index)
     }
 }
 
-int CaptureToolObjects::find(const QPoint& pos, const QSize& captureSize)
+int CaptureToolObjects::find(const QPoint& pos, QSize captureSize)
 {
     if (m_captureToolObjects.empty()) {
         return -1;

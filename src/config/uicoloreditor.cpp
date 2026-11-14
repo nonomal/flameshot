@@ -2,28 +2,30 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "uicoloreditor.h"
-#include "clickablelabel.h"
-#include "src/utils/confighandler.h"
-#include "src/utils/globalvalues.h"
+#include "config/clickablelabel.h"
+#include "utils/confighandler.h"
+#include "utils/globalvalues.h"
+
 #include <QApplication>
 #include <QComboBox>
 #include <QHBoxLayout>
+#include <QLineEdit>
 #include <QMap>
 #include <QSpacerItem>
 #include <QVBoxLayout>
 
 UIcolorEditor::UIcolorEditor(QWidget* parent)
-  : QGroupBox(parent)
+  : QWidget(parent)
 {
-    setTitle(tr("UI Color Editor"));
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     m_hLayout = new QHBoxLayout;
     m_vLayout = new QVBoxLayout;
 
-    const int space = QApplication::fontMetrics().lineSpacing();
+    const int space = QFontMetrics(qApp->font()).lineSpacing();
     m_hLayout->addItem(new QSpacerItem(space, space, QSizePolicy::Expanding));
     m_vLayout->setAlignment(Qt::AlignVCenter);
 
+    initHexColorInput();
     initButtons();
     initColorWheel();
 
@@ -68,13 +70,26 @@ void UIcolorEditor::updateLocalColor(const QColor c)
         m_contrastColor = c;
     }
     m_lastButtonPressed->setColor(c);
+    m_hexColorEdit->setText(c.name());
+}
+
+void UIcolorEditor::changeInputColor(const QString& hexColor)
+{
+    if (hexColor.contains(QRegularExpression("^#[0-9A-Fa-f]{6}$"))) {
+        QColor color(hexColor);
+        if (color.isValid()) {
+            m_colorWheel->setColor(color);
+            updateLocalColor(color);
+            updateUIcolor();
+        }
+    }
 }
 
 void UIcolorEditor::initColorWheel()
 {
     m_colorWheel = new color_widgets::ColorWheel(this);
     connect(m_colorWheel,
-            &color_widgets::ColorWheel::mouseReleaseOnColor,
+            &color_widgets::ColorWheel::colorSelected,
             this,
             &UIcolorEditor::updateUIcolor);
     connect(m_colorWheel,
@@ -99,13 +114,13 @@ void UIcolorEditor::initButtons()
 
     m_vLayout->addWidget(new QLabel(tr("Select a Button to modify it"), this));
 
-    QGroupBox* frame = new QGroupBox();
+    auto* frame = new QGroupBox();
     frame->setFixedSize(frameSize, frameSize);
 
     m_buttonMainColor = new CaptureToolButton(m_buttonIconType, frame);
     m_buttonMainColor->move(m_buttonMainColor->x() + extraSize / 2,
                             m_buttonMainColor->y() + extraSize / 2);
-    QHBoxLayout* h1 = new QHBoxLayout();
+    auto* h1 = new QHBoxLayout();
     h1->addWidget(frame);
     m_labelMain = new ClickableLabel(tr("Main Color"), this);
     h1->addWidget(m_labelMain);
@@ -114,12 +129,12 @@ void UIcolorEditor::initButtons()
     m_buttonMainColor->setToolTip(tr("Click on this button to set the edition"
                                      " mode of the main color."));
 
-    QGroupBox* frame2 = new QGroupBox();
+    auto* frame2 = new QGroupBox();
     m_buttonContrast = new CaptureToolButton(m_buttonIconType, frame2);
     m_buttonContrast->move(m_buttonContrast->x() + extraSize / 2,
                            m_buttonContrast->y() + extraSize / 2);
 
-    QHBoxLayout* h2 = new QHBoxLayout();
+    auto* h2 = new QHBoxLayout();
     h2->addWidget(frame2);
     frame2->setFixedSize(frameSize, frameSize);
     m_labelContrast = new ClickableLabel(tr("Contrast Color"), this);
@@ -147,7 +162,25 @@ void UIcolorEditor::initButtons()
     });
     m_lastButtonPressed = m_buttonMainColor;
 }
-
+void UIcolorEditor::initHexColorInput()
+{
+    m_hexColorEdit = new QLineEdit(this);
+    m_hexColorLabel = new QLabel(this);
+    m_hexColorLabel->setText(tr("Hex for Main Color"));
+    m_hexColorEdit->setSizePolicy(
+      QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed));
+    connect(m_hexColorEdit,
+            &QLineEdit::textChanged,
+            this,
+            &UIcolorEditor::changeInputColor);
+    QRegularExpression rgbRegex("^#[0-9A-Fa-f]{6}$");
+    QRegularExpressionValidator* validator =
+      new QRegularExpressionValidator(rgbRegex, m_hexColorEdit);
+    m_hexColorEdit->setValidator(validator);
+    m_hexColorEdit->setMaxLength(7);
+    m_vLayout->addWidget(m_hexColorLabel);
+    m_vLayout->addWidget(m_hexColorEdit);
+}
 // visual update for the selected button
 void UIcolorEditor::changeLastButton(CaptureToolButton* b)
 {
@@ -160,10 +193,12 @@ void UIcolorEditor::changeLastButton(CaptureToolButton* b)
             m_colorWheel->setColor(m_uiColor);
             m_labelContrast->setStyleSheet(offStyle);
             m_labelMain->setStyleSheet(styleSheet());
+            m_hexColorLabel->setText(tr("Hex for Main Color"));
         } else {
             m_colorWheel->setColor(m_contrastColor);
             m_labelContrast->setStyleSheet(styleSheet());
             m_labelMain->setStyleSheet(offStyle);
+            m_hexColorLabel->setText(tr("Hex for Contrast Color"));
         }
         b->setIcon(b->icon());
     }
